@@ -49,12 +49,6 @@ Image3 hw_1_2(const std::vector<std::string> &/*params*/) {
     ParsedSphere sphere;
     sphere.position = Vector3(0., 0., -2.);
     sphere.radius = 1.;
-	//{ ParsedCamera camera;
- //   std::vector<ParsedMaterial> materials;
- //   std::vector<ParsedLight> lights;
- //   std::vector<ParsedShape> shapes;
- //   Vector3(0., 0., 0.),
- //   1 };
     ParsedShape shape{ sphere };
     scene.shapes.push_back(shape);
 
@@ -108,9 +102,31 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     UNUSED(up);
     UNUSED(vfov);
 
-    Image3 img(640 /* width */, 480 /* height */);
+    std::shared_ptr<Image3> img;
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    Variables vars;
+    Renderer render;
+    ParsedScene scene;
+    ParsedSphere sphere;
+    sphere.position = Vector3(0., 0., -2.);
+    sphere.radius = 1.;
+    ParsedShape shape{ sphere };
+    scene.shapes.push_back(shape);
+    //lookfrom
+    //    lookat
+    //    up
+    //    vfov
+    cameraParameters.eye = lookfrom;
+    cameraParameters.center = lookat;
+    cameraParameters.upvec = up;
+    cameraParameters.fovy = vfov;
 
-    return img;
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, scene, Miss_hw_1_2, Illumination_hw_1_2);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_1_4(const std::vector<std::string> &params) {

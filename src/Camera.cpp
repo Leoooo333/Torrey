@@ -31,8 +31,8 @@ void PerspectiveCamera::CaculateRayDirections()
 		{
 			Vector2 coord = { (0.5 + (Real)j) / m_CameraParameters.width, (0.5 + (Real)i) / m_CameraParameters.height };
 			coord = coord * 2. - 1.;
-			float aspect_screen = (float)m_CameraParameters.width / (float)m_CameraParameters.height;
-			float fovx = m_CameraParameters.fovy * m_CameraParameters.aspect;
+			Real aspect_screen = (Real)m_CameraParameters.width / (Real)m_CameraParameters.height;
+			Real fovx = m_CameraParameters.fovy * m_CameraParameters.aspect;
 			coord.x = coord.x * tan(radians(fovx / 2)) * aspect_screen;
 			coord.y = coord.y * tan(radians(m_CameraParameters.fovy / 2));
 			Vector3 w = normalize(m_CameraParameters.eye - m_CameraParameters.center);
