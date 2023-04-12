@@ -215,6 +215,21 @@ TMatrix4x4<T> inverse(const TMatrix4x4<T> &m) {
 }
 
 template <typename T>
+TMatrix4x4<T> transpose(const TMatrix4x4<T>& m) {
+    TMatrix4x4<T> trans;
+
+    for(int i = 0; i < 4; i++)
+    {
+	    for(int j = 0; j < 4; j++)
+	    {
+            trans(i, j) = m(j, i);
+	    }
+    }
+
+    return trans;
+}
+
+template <typename T>
 inline TMatrix4x4<T> operator*(const TMatrix4x4<T> &m0, const TMatrix4x4<T> &m1) {
     TMatrix4x4<T> ret;
     for (int i = 0; i < 4; i++) {
@@ -226,6 +241,16 @@ inline TMatrix4x4<T> operator*(const TMatrix4x4<T> &m0, const TMatrix4x4<T> &m1)
         }
     }
     return ret;
+}
+
+template <typename T>
+inline TVector4<T> operator*(const TMatrix4x4<T>& m0, const TVector4<T>& v0) {
+    TVector4<T> result;
+    for (int i = 0; i < 4; i++) {
+        TVector4<T> row(m0(i, 0), m0(i, 1), m0(i ,2), m0(i ,3));
+        result[i] = dot(row, v0);
+        }
+    return result;
 }
 
 template <typename T>

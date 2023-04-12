@@ -1,37 +1,68 @@
 #include "hw1.h"
 #include "hw1_scenes.h"
-#include "Ray.h"
+#include "Camera.h"
+#include "Renderer.h"
 
 using namespace hw1;
 
-
+CameraParameters cameraParameters = 
+{
+    Vector3(0., 0.,  -1.),
+    Vector3(0., 0., 0.),
+    Vector3 (0., 1., 0.),
+    1.,
+    90.,
+    1.,
+	640,
+    480
+};
 
 Image3 hw_1_1(const std::vector<std::string> &/*params*/) {
     // Homework 1.1: generate camera rays and output the ray directions
     // The camera is positioned at (0, 0, 0), facing towards (0, 0, -1),
     // with an up vector (0, 1, 0) and a vertical field of view of 90 degree.
+    std::shared_ptr<Image3> img;
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    Variables vars;
+    Renderer render;
+    ParsedScene scene;
 
-    Image3 img(640 /* width */, 480 /* height */);
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    //CameraUnion cam = GenerateCameraByType(cameraParameters, ENVIRONMENT_CAM);
+    render.Render(cam, vars, scene, Miss_hw_1_1, Illumination_hw_1_1);
+    img = render.GetImage();
 
-    for (int y = 0; y < img.height; y++) {
-        for (int x = 0; x < img.width; x++) {
-            Ray 
-            img(x, y) = 
-                Vector3{(x + Real(0.5)) / img.width,
-                        (y + Real(0.5)) / img.height,
-                        Real(0)};
-        }
-    }
-    return img;
+    return *img;
 }
 
 Image3 hw_1_2(const std::vector<std::string> &/*params*/) {
     // Homework 1.2: intersect the rays generated from hw_1_1
     // with a unit sphere located at (0, 0, -2)
 
-    Image3 img(640 /* width */, 480 /* height */);
+    std::shared_ptr<Image3> img;
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    Variables vars;
+    Renderer render;
+    ParsedScene scene;
+    ParsedSphere sphere;
+    sphere.position = Vector3(0., 0., -2.);
+    sphere.radius = 1.;
+	//{ ParsedCamera camera;
+ //   std::vector<ParsedMaterial> materials;
+ //   std::vector<ParsedLight> lights;
+ //   std::vector<ParsedShape> shapes;
+ //   Vector3(0., 0., 0.),
+ //   1 };
+    ParsedShape shape{ sphere };
+    scene.shapes.push_back(shape);
 
-    return img;
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, scene, Miss_hw_1_2, Illumination_hw_1_2);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_1_3(const std::vector<std::string> &params) {

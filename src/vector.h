@@ -35,6 +35,7 @@ struct TVector3 {
     template <typename T2>
     TVector3(const TVector3<T2> &v) : x(T(v.x)), y(T(v.y)), z(T(v.z)) {}
 
+
     T& operator[](int i) {
         return *(&x + i);
     }
@@ -55,6 +56,9 @@ struct TVector4 {
 
     template <typename T2>
     TVector4(const TVector4<T2> &v) : x(T(v.x)), y(T(v.y)), z(T(v.z)), w(T(v.w)) {}
+
+    template <typename T2>
+    TVector4(const TVector3<T2> &v, T2 w) : x(T(v.x)), y(T(v.y)), z(T(v.z)), w(T(w)) {}
 
 
     T& operator[](int i) {
@@ -219,6 +223,11 @@ inline T dot(const TVector3<T> &v0, const TVector3<T> &v1) {
 }
 
 template <typename T>
+inline T dot(const TVector4<T>& v0, const TVector4<T>& v1) {
+    return v0[0] * v1[0] + v0[1] * v1[1] + v0[2] * v1[2] + v0[3] * v1[3];
+}
+
+template <typename T>
 inline TVector3<T> cross(const TVector3<T> &v0, const TVector3<T> &v1) {
     return TVector3<T>{
         v0[1] * v1[2] - v0[2] * v1[1],
@@ -275,6 +284,12 @@ template <typename T>
 inline TVector3<T> max(const TVector3<T> &v0, const TVector3<T> &v1) {
     return TVector3<T>{max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z)};
 }
+
+template <typename T>
+inline TVector3<T> reflect(const TVector3<T>& incident, const TVector3<T>& normal) {
+    return TVector3<T>(incident - 2. * dot(incident, normal) * normal);
+}
+
 
 template <typename T>
 inline bool isnan(const TVector2<T> &v) {
