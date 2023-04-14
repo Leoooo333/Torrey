@@ -1,0 +1,19 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "torrey.exe",
+      "name": "torrey.exe",
+      "args": [
+        "-hw",
+        "1_8",
+        "4",
+        "-spp",
+        "32"
+      ]
+    }
+  ]
+}

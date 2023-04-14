@@ -17,13 +17,15 @@ public:
 
 	int numobjects;
 
-	float attenuation_const = 1;
-	float attenuation_linear = 0;
-	float attenuation_quadratic = 0;
+	Real attenuation_const = 0;
+	Real attenuation_linear = 0;
+	Real attenuation_quadratic = 1.;
 
-	int maxdepth = 0;
+	int maxdepth = 1;
 	int maxdepth_refract = 0;
 	bool isPrimary_ray = true;
+
+	int tile_size = 64;
 
 	CameraType cameraType = PERSPECTIVE_CAM;
 };

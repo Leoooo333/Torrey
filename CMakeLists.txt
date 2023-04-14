@@ -25,6 +25,7 @@ set(SRCS src/3rdparty/miniz.h
          src/3rdparty/stb_image.h
          src/3rdparty/tinyexr.h
          src/3rdparty/tinyply.h
+         src/3rdparty/pcg.h
          src/compute_normals.h
          src/flexception.h
          src/hw1.h

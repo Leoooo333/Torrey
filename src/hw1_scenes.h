@@ -1,4 +1,5 @@
 #pragma once
+#include "parse_scene.h"
 
 namespace hw1 {
 
@@ -222,4 +223,61 @@ Scene hw1_scenes[] = {
     hw1_scene_0, hw1_scene_1, hw1_scene_2, hw1_scene_3, hw1_scene_4
 };
 
+ParsedScene SceneToParsedScene(Scene& scene)
+{
+    ParsedScene parsed_scene;
+
+    ParsedCamera camera = { scene.camera.lookfrom,
+    scene.camera.lookat,
+    scene.camera.up,
+    scene.camera.vfov,
+    640, 480 };
+
+    std::vector<ParsedMaterial> materials;
+    for (Material material : scene.materials)
+    {
+        ParsedMaterial parsed_m;
+        ParsedColor parsed_color;
+        if(material.type == MaterialType::Diffuse)
+        {
+            parsed_color = { material.color };
+            ParsedDiffuse diffuse_m = { parsed_color };
+            parsed_m = { diffuse_m };
+        }
+        else if(material.type == MaterialType::Mirror)
+        {
+            parsed_color = { material.color };
+            ParsedMirror mirror_m = { parsed_color };
+            parsed_m = { mirror_m };
+        }
+        materials.push_back(parsed_m);
+    }
+
+    std::vector<ParsedLight> lights;
+    for(PointLight light: scene.lights)
+    {
+        ParsedLight parsed_l;
+
+        ParsedPointLight parsed_pl = { light.position, light.intensity };
+        parsed_l = { parsed_pl };
+        lights.push_back(parsed_l);
+    }
+
+    std::vector<ParsedShape> shapes;
+    for(Sphere shape: scene.shapes)
+    {
+        ParsedShape parsed_s;
+
+        ParsedSphere parsed_sph = { shape.material_id, -1,shape.center, shape.radius };
+        parsed_s = { parsed_sph };
+        shapes.push_back(parsed_s);
+    }
+    Vector3 background_color = Vector3(0.5, 0.5, 0.5);
+    int samples_per_pixel = 1;
+
+    parsed_scene = { camera, materials, lights, shapes, background_color, samples_per_pixel };
+    return parsed_scene;
 }
+
+}
+

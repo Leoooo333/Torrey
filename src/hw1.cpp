@@ -123,7 +123,7 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     cameraParameters.fovy = vfov;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, scene, Miss_hw_1_2, Illumination_hw_1_2);
+    render.Render(cam, vars, scene, Miss_hw_1_3, Illumination_hw_1_3);
     img = render.GetImage();
 
     return *img;
@@ -139,10 +139,25 @@ Image3 hw_1_4(const std::vector<std::string> &params) {
     int scene_id = std::stoi(params[0]);
     UNUSED(scene_id); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
+    Scene& scene = hw1_scenes[scene_id];
 
-    Image3 img(640 /* width */, 480 /* height */);
+    std::shared_ptr<Image3> img;
+    Variables vars;
+    Renderer render;
+    ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    return img;
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    cameraParameters.eye = parsed_scene.camera.lookfrom;
+    cameraParameters.center = parsed_scene.camera.lookat;
+    cameraParameters.upvec = parsed_scene.camera.up;
+    cameraParameters.fovy = parsed_scene.camera.vfov;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, parsed_scene, Miss_hw_1_4, Illumination_hw_1_4);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_1_5(const std::vector<std::string> &params) {
@@ -155,10 +170,25 @@ Image3 hw_1_5(const std::vector<std::string> &params) {
     int scene_id = std::stoi(params[0]);
     UNUSED(scene_id); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
+    Scene& scene = hw1_scenes[scene_id];
 
-    Image3 img(640 /* width */, 480 /* height */);
+    std::shared_ptr<Image3> img;
+    Variables vars;
+    Renderer render;
+    ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    return img;
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    cameraParameters.eye = parsed_scene.camera.lookfrom;
+    cameraParameters.center = parsed_scene.camera.lookat;
+    cameraParameters.upvec = parsed_scene.camera.up;
+    cameraParameters.fovy = parsed_scene.camera.vfov;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, parsed_scene, Miss_hw_1_5, Illumination_hw_1_5);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_1_6(const std::vector<std::string> &params) {
@@ -181,9 +211,26 @@ Image3 hw_1_6(const std::vector<std::string> &params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Image3 img(160 /* width */, 120 /* height */);
+    Scene& scene = hw1_scenes[scene_id];
 
-    return img;
+    std::shared_ptr<Image3> img;
+    Variables vars;
+    Renderer render;
+    ParsedScene parsed_scene = SceneToParsedScene(scene);
+
+    cameraParameters.width = 160;
+    cameraParameters.height = 120;
+    cameraParameters.eye = parsed_scene.camera.lookfrom;
+    cameraParameters.center = parsed_scene.camera.lookat;
+    cameraParameters.upvec = parsed_scene.camera.up;
+    cameraParameters.fovy = parsed_scene.camera.vfov;
+    cameraParameters.samples_per_pixel = spp;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, parsed_scene, Miss_hw_1_6, Illumination_hw_1_6);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_1_7(const std::vector<std::string> &params) {
@@ -197,7 +244,8 @@ Image3 hw_1_7(const std::vector<std::string> &params) {
     for (int i = 0; i < (int)params.size(); i++) {
         if (params[i] == "-spp") {
             spp = std::stoi(params[++i]);
-        } else {
+        }
+        else {
             scene_id = std::stoi(params[i]);
         }
     }
@@ -206,9 +254,29 @@ Image3 hw_1_7(const std::vector<std::string> &params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Image3 img(640 /* width */, 480 /* height */);
+    Scene& scene = hw1_scenes[scene_id];
 
-    return img;
+    std::shared_ptr<Image3> img;
+    Variables vars;
+
+    vars.maxdepth = 3; // tracing depth
+
+    Renderer render;
+    ParsedScene parsed_scene = SceneToParsedScene(scene);
+
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    cameraParameters.eye = parsed_scene.camera.lookfrom;
+    cameraParameters.center = parsed_scene.camera.lookat;
+    cameraParameters.upvec = parsed_scene.camera.up;
+    cameraParameters.fovy = parsed_scene.camera.vfov;
+    cameraParameters.samples_per_pixel = spp;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, parsed_scene, Miss_hw_1_7, Illumination_hw_1_7);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_1_8(const std::vector<std::string> &params) {
@@ -222,7 +290,8 @@ Image3 hw_1_8(const std::vector<std::string> &params) {
     for (int i = 0; i < (int)params.size(); i++) {
         if (params[i] == "-spp") {
             spp = std::stoi(params[++i]);
-        } else {
+        }
+        else {
             scene_id = std::stoi(params[i]);
         }
     }
@@ -231,7 +300,27 @@ Image3 hw_1_8(const std::vector<std::string> &params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Image3 img(1280 /* width */, 960 /* height */);
+    Scene& scene = hw1_scenes[scene_id];
 
-    return img;
+    std::shared_ptr<Image3> img;
+    Variables vars;
+
+    vars.maxdepth = 3; // tracing depth
+
+    Renderer render;
+    ParsedScene parsed_scene = SceneToParsedScene(scene);
+
+    cameraParameters.width = 1280;
+    cameraParameters.height = 960;
+    cameraParameters.eye = parsed_scene.camera.lookfrom;
+    cameraParameters.center = parsed_scene.camera.lookat;
+    cameraParameters.upvec = parsed_scene.camera.up;
+    cameraParameters.fovy = parsed_scene.camera.vfov;
+    cameraParameters.samples_per_pixel = spp;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, parsed_scene, Miss_hw_1_8, Illumination_hw_1_8);
+    img = render.GetImage();
+
+    return *img;
 }

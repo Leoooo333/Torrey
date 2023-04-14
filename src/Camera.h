@@ -17,6 +17,7 @@ struct CameraParameters
 	Real aspect = 1.;
 	int width;
 	int height;
+	int samples_per_pixel = 1;
 };
 
 class AbstractCamera
@@ -25,10 +26,9 @@ public:
 	AbstractCamera() {};
 	AbstractCamera(CameraParameters cameraParameters);
 	void OnResize(int width, int height);
-	void CaculateRayDirections();
+	Ray CaculateRayDirections(int x, int y, Vector2 offset=Vector2(0.5, 0.5));
 	void ReSetCamera(CameraParameters cameraParameters);
 	CameraParameters m_CameraParameters;
-	std::vector<Ray> m_Rays;
 	Matrix4x4 m_Projection;
 	Matrix4x4 m_InverseProjection;
 	Matrix4x4 m_View;
@@ -39,14 +39,14 @@ class PerspectiveCamera : public AbstractCamera
 {
 public:
 	PerspectiveCamera(CameraParameters cameraParameters);
-	void CaculateRayDirections();
+	Ray CaculateRayDirections(int x, int y, Vector2 offset = Vector2(0.5, 0.5));
 };
 
 class EnvironmentCamera : public AbstractCamera
 {
 public:
 	EnvironmentCamera(CameraParameters cameraParameters);
-	void CaculateRayDirections();
+	Ray CaculateRayDirections(int x, int y, Vector2 offset = Vector2(0.5, 0.5));
 };
 
 using CameraUnion = std::variant<PerspectiveCamera, EnvironmentCamera>;
