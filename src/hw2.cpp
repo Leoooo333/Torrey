@@ -1,7 +1,10 @@
 #include "hw2.h"
 #include "parse_scene.h"
 #include "print_scene.h"
+#include "Renderer.h"
 #include "timer.h"
+#include "Variables.h"
+#include <hw1.cpp>
 
 Image3 hw_2_1(const std::vector<std::string> &params) {
     // Homework 2.1: render a single triangle and outputs
@@ -33,9 +36,40 @@ Image3 hw_2_1(const std::vector<std::string> &params) {
     Vector3 p1{tri_params[3], tri_params[4], tri_params[5]};
     Vector3 p2{tri_params[6], tri_params[7], tri_params[8]};
 
-    Image3 img(640 /* width */, 480 /* height */);
+    UNUSED(spp); // avoid unused warning
+    // Your scene is hw1_scenes[scene_id]
 
-    return img;
+    std::shared_ptr<Image3> img;
+    Variables vars;
+
+    vars.max_depth = 0; // tracing depth
+
+    Renderer render;
+    ParsedScene parsed_scene;
+    ParsedTriangleMesh mesh;
+    mesh.positions.push_back(p0);
+    mesh.positions.push_back(p1);
+    mesh.positions.push_back(p2);
+    mesh.indices.push_back(Vector3i(0, 1, 2));
+    mesh.material_id = 0;
+    
+    ParsedMaterial parsed_m;
+    ParsedDiffuse diffuse_m = { Vector3(0., 0., 0.) };
+    parsed_m = { diffuse_m };
+
+    ParsedShape shape{ mesh };
+    parsed_scene.shapes.push_back(shape);
+    parsed_scene.materials.push_back(parsed_m);
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    cameraParameters.fovy = 45.;
+    cameraParameters.samples_per_pixel = spp;
+    Scene scene = ParsedSceneToScene(parsed_scene);
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, scene, Miss_hw_2_1, Illumination_hw_2_1);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_2_2(const std::vector<std::string> &params) {
@@ -66,9 +100,38 @@ Image3 hw_2_2(const std::vector<std::string> &params) {
         Vector3i{1, 2, 3}
     };
 
-    Image3 img(640 /* width */, 480 /* height */);
-    
-    return img;
+    UNUSED(spp); // avoid unused warning
+    // Your scene is hw1_scenes[scene_id]
+
+    std::shared_ptr<Image3> img;
+    Variables vars;
+
+    vars.max_depth = 0; // tracing depth
+
+    Renderer render;
+    ParsedScene parsed_scene;
+    ParsedTriangleMesh triangle;
+    triangle.positions = positions;
+    triangle.indices = indices;
+    triangle.material_id = 0;
+
+    ParsedMaterial parsed_m;
+    ParsedDiffuse diffuse_m = { Vector3(0., 0., 0.) };
+    parsed_m = { diffuse_m };
+
+    ParsedShape shape{ triangle };
+    parsed_scene.shapes.push_back(shape);
+    parsed_scene.materials.push_back(parsed_m);
+    cameraParameters.width = 640;
+    cameraParameters.height = 480;
+    cameraParameters.fovy = 45.;
+    cameraParameters.samples_per_pixel = spp;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_2_2, Illumination_hw_2_2);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_2_3(const std::vector<std::string> &params) {
@@ -76,14 +139,32 @@ Image3 hw_2_3(const std::vector<std::string> &params) {
     if (params.size() < 1) {
         return Image3(0, 0);
     }
-
     Timer timer;
     tick(timer);
     ParsedScene scene = parse_scene(params[0]);
     std::cout << "Scene parsing done. Took " << tick(timer) << " seconds." << std::endl;
     std::cout << scene << std::endl;
 
-    return Image3(0, 0);
+    std::shared_ptr<Image3> img;
+    Variables vars;
+
+    vars.max_depth = 10; // tracing depth
+
+    Renderer render;
+
+    cameraParameters.width = scene.camera.width;
+    cameraParameters.height = scene.camera.height;
+    cameraParameters.eye = scene.camera.lookfrom;
+    cameraParameters.center = scene.camera.lookat;
+    cameraParameters.upvec = scene.camera.up;
+    cameraParameters.fovy = scene.camera.vfov;
+    cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_2_3, Illumination_hw_2_3);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_2_4(const std::vector<std::string> &params) {
@@ -91,14 +172,31 @@ Image3 hw_2_4(const std::vector<std::string> &params) {
     if (params.size() < 1) {
         return Image3(0, 0);
     }
-
     Timer timer;
     tick(timer);
     ParsedScene scene = parse_scene(params[0]);
     std::cout << "Scene parsing done. Took " << tick(timer) << " seconds." << std::endl;
     UNUSED(scene);
+    std::shared_ptr<Image3> img;
+    Variables vars;
 
-    return Image3(0, 0);
+    vars.max_depth = 0; // tracing depth
+
+    Renderer render;
+
+    cameraParameters.width = scene.camera.width;
+    cameraParameters.height = scene.camera.height;
+    cameraParameters.eye = scene.camera.lookfrom;
+    cameraParameters.center = scene.camera.lookat;
+    cameraParameters.upvec = scene.camera.up;
+    cameraParameters.fovy = scene.camera.vfov;
+    cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render_AABB(cam, vars, ParsedSceneToScene(scene), Miss_hw_2_4, Illumination_hw_2_4);
+    img = render.GetImage();
+
+    return *img;
 }
 
 Image3 hw_2_5(const std::vector<std::string> &params) {
@@ -106,12 +204,33 @@ Image3 hw_2_5(const std::vector<std::string> &params) {
     if (params.size() < 1) {
         return Image3(0, 0);
     }
-
+    int spp = 16;
     Timer timer;
     tick(timer);
     ParsedScene scene = parse_scene(params[0]);
     std::cout << "Scene parsing done. Took " << tick(timer) << " seconds." << std::endl;
     UNUSED(scene);
 
-    return Image3(0, 0);
+    UNUSED(spp);
+    std::shared_ptr<Image3> img;
+    Variables vars;
+
+    vars.max_depth = 5; // tracing depth
+
+    Renderer render;
+
+    cameraParameters.width = scene.camera.width;
+    cameraParameters.height = scene.camera.height;
+    cameraParameters.eye = scene.camera.lookfrom;
+    cameraParameters.center = scene.camera.lookat;
+    cameraParameters.upvec = scene.camera.up;
+    cameraParameters.fovy = scene.camera.vfov;
+    cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+    cameraParameters.samples_per_pixel = 1;
+
+    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
+    render.Render_BVH(cam, vars, ParsedSceneToScene(scene), Miss_hw_2_5, Illumination_hw_2_5);
+    img = render.GetImage();
+
+    return *img;
 }

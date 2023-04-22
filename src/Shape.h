@@ -1,5 +1,4 @@
 #pragma once
-#include "Ray.h"
 #include "matrix.h"
 #include "parse_scene.h"
 
@@ -33,8 +32,45 @@
 //	Vector4 GetNormalByHitPoint(Matrix4x4 hitpoint);
 //};
 
-Real FindIntersection(Ray& ray, ParsedSphere& sphere);
-Real FindIntersection(Ray& ray, ParsedTriangleMesh& triangle);
+//struct Triangle {
+//	int face_index;
+//	const ParsedTriangleMesh* mesh;
+//};
+
+
+struct Triangle
+{
+    const ParsedTriangleMesh* mesh;
+    int index;
+};
+
+using Shape = std::variant<ParsedSphere, Triangle>;
+
+struct Ray
+{
+    Vector3 Origin;
+    Vector3 Direction;
+    std::vector<std::shared_ptr<Shape>> Objects;
+    Real t_nearst = 15000.;
+
+};
+
+struct Scene {
+    ParsedCamera camera;
+    std::vector<ParsedMaterial> materials;
+    std::vector<ParsedLight> lights;
+    std::vector<Shape> shapes;
+    Vector3 background_color;
+    int samples_per_pixel;
+};
+
+Scene ParsedSceneToScene(ParsedScene& parsed_scene);
+
+
+bool FindIntersection(Ray& ray, ParsedSphere& sphere, Matrix4x4 transform, Real t_min, Real t_max);
+bool FindIntersection(Ray& ray, ParsedSphere& sphere, Real t_min, Real t_max);
+bool FindIntersection(Ray& ray, Triangle& triangle, Real t_min, Real t_max);
+bool FindIntersection(Ray& ray, Shape& shape, Real t_min, Real t_max);
 
 Vector4 GetNormalByHitPoint(Vector3 hitpoint, ParsedSphere& sphere);
-Vector4 GetNormalByHitPoint(Vector3 hitpoint, ParsedTriangleMesh& triangle);
+Vector4 GetNormalByHitPoint(Vector3 hitpoint, Triangle& triangle);

@@ -24,7 +24,11 @@ public:
 	int max_depth = 1;
 	bool isPrimary_ray = true;
 
-	int tile_size = 128;
+	int tile_size = 64;
+
+	Real epsilon = 1e-4;
+	Real t_min = epsilon;
+	Real t_max = (1. - epsilon) * 15000.;
 
 	CameraType cameraType = PERSPECTIVE_CAM;
 };

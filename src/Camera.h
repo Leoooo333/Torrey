@@ -1,6 +1,6 @@
 #pragma once
 #include "image.h"
-#include "Ray.h"
+#include "Shape.h"
 #include "matrix.h"
 
 #include <variant>

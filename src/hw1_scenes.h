@@ -32,14 +32,14 @@ struct Material {
     Vector3 color;
 };
 
-struct Scene {
+struct HW1_Scene {
     Camera camera;
     std::vector<Sphere> shapes;
     std::vector<Material> materials;
     std::vector<PointLight> lights; 
 };
 
-Scene hw1_scene_0{
+HW1_Scene hw1_scene_0{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -59,7 +59,7 @@ Scene hw1_scene_0{
     }
 };
 
-Scene hw1_scene_1{
+HW1_Scene hw1_scene_1{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -85,7 +85,7 @@ Scene hw1_scene_1{
     }
 };
 
-Scene hw1_scene_2{
+HW1_Scene hw1_scene_2{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -108,7 +108,7 @@ Scene hw1_scene_2{
     }
 };
 
-Scene hw1_scene_3{
+HW1_Scene hw1_scene_3{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -143,7 +143,7 @@ Scene hw1_scene_3{
     }
 };
 
-Scene hw1_scene_4{
+HW1_Scene hw1_scene_4{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -219,7 +219,7 @@ Scene hw1_scene_4{
         {Vector3{50, 5, 5}, Vector3{5, 5, -5}},
     }
 };
-Scene hw1_scene_5{// plastic version of scene 0
+HW1_Scene hw1_scene_5{// plastic version of scene 0
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -240,7 +240,7 @@ Scene hw1_scene_5{// plastic version of scene 0
 };
 
 
-Scene hw1_scene_6{ // plastic version of scene 1
+HW1_Scene hw1_scene_6{ // plastic version of scene 1
 Camera{
     Vector3{0, 0,  0}, // lookfrom
     Vector3{0, 0, -1}, // lookat
@@ -267,7 +267,7 @@ std::vector<PointLight>{
 };
 
 
-Scene hw1_scene_7{ // Plastic version of scene 3
+HW1_Scene hw1_scene_7{ // Plastic version of scene 3
 Camera{
     Vector3{0, 0,  0}, // lookfrom
     Vector3{0, 0, -1}, // lookat
@@ -303,7 +303,7 @@ std::vector<PointLight>{
 };
 
 
-Scene hw1_scene_8{
+HW1_Scene hw1_scene_8{
 Camera{
     Vector3{0, 0,  0}, // lookfrom
     Vector3{0, 0, -1}, // lookat
@@ -380,7 +380,7 @@ std::vector<PointLight>{
 }
 };
 
-Scene hw1_scene_9{ // plastic version of scene 1
+HW1_Scene hw1_scene_9{ // plastic version of scene 1
 Camera{
     Vector3{0., 0.,  0.}, // lookfrom
     Vector3{0., 0., -1.}, // lookat
@@ -1663,11 +1663,11 @@ std::vector<PointLight>{
     { Vector3{  100,   100, 100}, Vector3{ 0., -0.16, -2.} },*/
 }
 };
-Scene hw1_scenes[] = {
+HW1_Scene hw1_scenes[] = {
     hw1_scene_0, hw1_scene_1, hw1_scene_2, hw1_scene_3, hw1_scene_4, hw1_scene_5, hw1_scene_6, hw1_scene_7, hw1_scene_8, hw1_scene_9
 };
 
-ParsedScene SceneToParsedScene(Scene& scene)
+ParsedScene SceneToParsedScene(HW1_Scene& scene)
 {
     ParsedScene parsed_scene;
 

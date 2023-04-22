@@ -121,7 +121,7 @@ static void worker_thread_func(const int tIndex, std::shared_ptr<Barrier> barrie
     }
 }
 
-void parallel_for(const std::function<void(int)> &func,
+void parallel_for(std::function<void(int64_t)> func,
                   int64_t count,
                   int64_t chunkSize) {
     // Run iterations immediately if not using threads or if _count_ is small

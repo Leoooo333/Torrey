@@ -281,8 +281,17 @@ inline TVector3<T> min(const TVector3<T> &v0, const TVector3<T> &v1) {
 }
 
 template <typename T>
+inline TVector3<T> min(const TVector3<T>& v0, const TVector3<T>& v1, const TVector3<T>& v2) {
+    return TVector3<T>{std::min({ v0.x, v1.x, v2.x }), std::min({ v0.y, v1.y, v2.y }), std::min({ v0.z, v1.z, v2.z })};
+}
+
+template <typename T>
 inline TVector3<T> max(const TVector3<T> &v0, const TVector3<T> &v1) {
     return TVector3<T>{max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z)};
+}
+template <typename T>
+inline TVector3<T> max(const TVector3<T>& v0, const TVector3<T>& v1, const TVector3<T>& v2) {
+    return TVector3<T>{std::max({ v0.x, v1.x, v2.x }), std::max({ v0.y, v1.y, v2.y }), std::max({ v0.z, v1.z, v2.z })};
 }
 
 template <typename T>
@@ -292,12 +301,8 @@ inline TVector3<T> reflect(const TVector3<T>& incident, const TVector3<T>& norma
 
 template <typename T>
 inline TVector3<T> refract(const TVector3<T>& incident, const TVector3<T>& normal, Real etai_over_etat) {
-    //auto cos_theta = min(dot(-incident, normal), 1.0);
     auto k = 1.0 - etai_over_etat * etai_over_etat * (1.0 - dot(incident, normal) * dot(incident, normal));
-    //TVector3<T> r_out_perp = etai_over_etat * (incident + cos_theta * normal);
-    //TVector3<T> r_out_parallel = -sqrt(fabs(1.0 - length_squared(r_out_perp))) * normal;
     return etai_over_etat * incident - (etai_over_etat * dot(incident, normal) + sqrt(k)) * normal;
-	//return r_out_perp + r_out_parallel;
 }
 
 

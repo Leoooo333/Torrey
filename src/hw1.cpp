@@ -27,10 +27,15 @@ Image3 hw_1_1(const std::vector<std::string> &/*params*/) {
     Variables vars;
     Renderer render;
     ParsedScene scene;
+    ParsedSphere sphere{ 0, -1,Vector3(0., 0., 0.), 0. };
+    ParsedDiffuse material{ ParsedColor{Vector3{0., 0., 0.}} };
+    scene.shapes.push_back(ParsedShape{ sphere });
+    scene.materials.push_back(ParsedMaterial{ material });
+    vars.max_depth = 0;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
     //CameraUnion cam = GenerateCameraByType(cameraParameters, ENVIRONMENT_CAM);
-    render.Render(cam, vars, scene, Miss_hw_1_1, Illumination_hw_1_1);
+    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_1_1, Illumination_hw_1_1);
     img = render.GetImage();
 
     return *img;
@@ -47,13 +52,16 @@ Image3 hw_1_2(const std::vector<std::string> &/*params*/) {
     Renderer render;
     ParsedScene scene;
     ParsedSphere sphere;
+    sphere.material_id = 0;
     sphere.position = Vector3(0., 0., -2.);
     sphere.radius = 1.;
     ParsedShape shape{ sphere };
     scene.shapes.push_back(shape);
-
+    ParsedDiffuse material{ ParsedColor{Vector3{0., 0., 0.}} };
+    scene.materials.push_back(ParsedMaterial{ material });
+    vars.max_depth = 0;
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, scene, Miss_hw_1_2, Illumination_hw_1_2);
+    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_1_2, Illumination_hw_1_2);
     img = render.GetImage();
 
     return *img;
@@ -109,10 +117,14 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     Renderer render;
     ParsedScene scene;
     ParsedSphere sphere;
+    sphere.material_id = 0;
     sphere.position = Vector3(0., 0., -2.);
     sphere.radius = 1.;
     ParsedShape shape{ sphere };
     scene.shapes.push_back(shape);
+    ParsedDiffuse material{ ParsedColor{Vector3{0., 0., 0.}} };
+    scene.materials.push_back(ParsedMaterial{ material });
+    vars.max_depth = 0;
     //lookfrom
     //    lookat
     //    up
@@ -122,8 +134,9 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     cameraParameters.upvec = up;
     cameraParameters.fovy = vfov;
 
+
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, scene, Miss_hw_1_3, Illumination_hw_1_3);
+    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_1_3, Illumination_hw_1_3);
     img = render.GetImage();
 
     return *img;
@@ -139,13 +152,13 @@ Image3 hw_1_4(const std::vector<std::string> &params) {
     int scene_id = std::stoi(params[0]);
     UNUSED(scene_id); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
-
+    vars.max_depth = 0;
     cameraParameters.width = 640;
     cameraParameters.height = 480;
     cameraParameters.eye = parsed_scene.camera.lookfrom;
@@ -154,7 +167,7 @@ Image3 hw_1_4(const std::vector<std::string> &params) {
     cameraParameters.fovy = parsed_scene.camera.vfov;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_4, Illumination_hw_1_4);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_4, Illumination_hw_1_4);
     img = render.GetImage();
 
     return *img;
@@ -170,7 +183,7 @@ Image3 hw_1_5(const std::vector<std::string> &params) {
     int scene_id = std::stoi(params[0]);
     UNUSED(scene_id); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
@@ -183,9 +196,9 @@ Image3 hw_1_5(const std::vector<std::string> &params) {
     cameraParameters.center = parsed_scene.camera.lookat;
     cameraParameters.upvec = parsed_scene.camera.up;
     cameraParameters.fovy = parsed_scene.camera.vfov;
-
+    vars.max_depth = 0;
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_5, Illumination_hw_1_5);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_5, Illumination_hw_1_5);
     img = render.GetImage();
 
     return *img;
@@ -211,13 +224,13 @@ Image3 hw_1_6(const std::vector<std::string> &params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
-
+    vars.max_depth = 0;
     cameraParameters.width = 160;
     cameraParameters.height = 120;
     cameraParameters.eye = parsed_scene.camera.lookfrom;
@@ -227,7 +240,7 @@ Image3 hw_1_6(const std::vector<std::string> &params) {
     cameraParameters.samples_per_pixel = spp;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_6, Illumination_hw_1_6);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_6, Illumination_hw_1_6);
     img = render.GetImage();
 
     return *img;
@@ -254,7 +267,7 @@ Image3 hw_1_7(const std::vector<std::string> &params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
@@ -273,7 +286,7 @@ Image3 hw_1_7(const std::vector<std::string> &params) {
     cameraParameters.samples_per_pixel = spp;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_7, Illumination_hw_1_7);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_7, Illumination_hw_1_7);
     img = render.GetImage();
 
     return *img;
@@ -300,7 +313,7 @@ Image3 hw_1_8(const std::vector<std::string> &params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
@@ -319,7 +332,7 @@ Image3 hw_1_8(const std::vector<std::string> &params) {
     cameraParameters.samples_per_pixel = spp;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_8, Illumination_hw_1_8);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_8, Illumination_hw_1_8);
     img = render.GetImage();
 
     return *img;
@@ -346,7 +359,7 @@ Image3 hw_1_10(const std::vector<std::string>& params) {
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
@@ -365,7 +378,7 @@ Image3 hw_1_10(const std::vector<std::string>& params) {
     cameraParameters.samples_per_pixel = spp;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_10, Illumination_hw_1_10);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_10, Illumination_hw_1_10);
     img = render.GetImage();
 
     return *img;    
@@ -392,7 +405,7 @@ Image3 hw_1_9(const std::vector<std::string>& params)
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
@@ -412,7 +425,7 @@ Image3 hw_1_9(const std::vector<std::string>& params)
     //cameraParameters.aperture = 0.03;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_9, Illumination_hw_1_9);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_9, Illumination_hw_1_9);
     img = render.GetImage();
 
     return *img;
@@ -439,7 +452,7 @@ Image3 hw_1_11(const std::vector<std::string>& params)
     UNUSED(spp); // avoid unused warning
     // Your scene is hw1_scenes[scene_id]
 
-    Scene& scene = hw1_scenes[scene_id];
+    HW1_Scene& scene = hw1_scenes[scene_id];
 
     std::shared_ptr<Image3> img;
     Variables vars;
@@ -459,7 +472,7 @@ Image3 hw_1_11(const std::vector<std::string>& params)
     cameraParameters.aperture = 0.04;
 
     CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, parsed_scene, Miss_hw_1_11, Illumination_hw_1_11);
+    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_11, Illumination_hw_1_11);
     img = render.GetImage();
 
     return *img;

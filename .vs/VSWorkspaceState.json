@@ -1,7 +1,8 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\src"
   ],
-  "SelectedNode": "\\C:\\Users\\Leo\\Desktop\\CSE168\\CMakeLists.txt\\torrey_lib.lib\\C:\\Users\\Leo\\Desktop\\CSE168\\src\\Camera.h",
+  "SelectedNode": "\\CMakeLists.txt",
   "PreviewInSolutionExplorer": false
 }

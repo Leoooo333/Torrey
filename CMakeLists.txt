@@ -44,11 +44,12 @@ set(SRCS src/3rdparty/miniz.h
          src/torrey.h
          src/transform.h
          src/vector.h
-         src/Ray.h
          src/Camera.h
          src/Shape.h
          src/Renderer.h
          src/Variables.h
+         src/aabb.h
+         src/BVH.h
          src/compute_normals.cpp
          src/hw1.cpp
          src/hw2.cpp
@@ -65,7 +66,9 @@ set(SRCS src/3rdparty/miniz.h
          src/transform.cpp
          src/Camera.cpp
          src/Shape.cpp
-         src/Renderer.cpp)
+         src/Renderer.cpp
+         src/aabb.cpp
+         src/BVH.cpp)
 
 add_library(torrey_lib STATIC ${SRCS})
 add_executable(torrey src/main.cpp)
