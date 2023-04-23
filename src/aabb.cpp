@@ -15,7 +15,7 @@ bool AxisAlignedBoundingBox::isHit(Ray& ray, double t_min, double t_max)
     }
     return true;
 }
-AxisAlignedBoundingBox surrounding_box(AxisAlignedBoundingBox box0, AxisAlignedBoundingBox box1)
+AxisAlignedBoundingBox surrounding_box(AxisAlignedBoundingBox& box0, AxisAlignedBoundingBox& box1)
 {
     Vector3 small{ min(box0.min().x, box1.min().x),
     min(box0.min().y, box1.min().y),

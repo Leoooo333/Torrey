@@ -42,3 +42,8 @@ __pycache__/
 
 # Everything in the scene folder
 scenes/
+*.ipch
+*.opendb
+*.db
+*.db-wal
+*.db-shm

@@ -7,6 +7,17 @@ class Variables
 public:
 	Variables(){};
 public:
+	CameraParameters cameraParameters =
+	{
+		Vector3(0., 0.,  -1.),
+		Vector3(0., 0., 0.),
+		Vector3(0., 1., 0.),
+		1.,
+		90.,
+		1.,
+		640,
+		480
+	};
 	static const int maxlights = 10;
 	int numlights = 0;
 
@@ -25,6 +36,7 @@ public:
 	bool isPrimary_ray = true;
 
 	int tile_size = 64;
+	int parallel_counts_bvh = 128;
 
 	Real epsilon = 1e-4;
 	Real t_min = epsilon;

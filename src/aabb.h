@@ -16,7 +16,7 @@ public:
     bool isHit(Ray& ray, double t_min, double t_max);
 };
 
-AxisAlignedBoundingBox surrounding_box(AxisAlignedBoundingBox box0, AxisAlignedBoundingBox box1);
+AxisAlignedBoundingBox surrounding_box(AxisAlignedBoundingBox& box0, AxisAlignedBoundingBox& box1);
 
 
 AxisAlignedBoundingBox GetAabbByShape(ParsedSphere& sphere);

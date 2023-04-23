@@ -5,26 +5,15 @@
 
 using namespace hw1;
 
-CameraParameters cameraParameters = 
-{
-    Vector3(0., 0.,  -1.),
-    Vector3(0., 0., 0.),
-    Vector3 (0., 1., 0.),
-    1.,
-    90.,
-    1.,
-	640,
-    480
-};
-
-Image3 hw_1_1(const std::vector<std::string> &/*params*/) {
+Image3 hw_1_1(const std::vector<std::string>&/*params*/) {
     // Homework 1.1: generate camera rays and output the ray directions
     // The camera is positioned at (0, 0, 0), facing towards (0, 0, -1),
     // with an up vector (0, 1, 0) and a vertical field of view of 90 degree.
     std::shared_ptr<Image3> img;
-    cameraParameters.width = 640;
-    cameraParameters.height = 480;
+
     Variables vars;
+    vars.cameraParameters.width = 640;
+    vars.cameraParameters.height = 480;
     Renderer render;
     ParsedScene scene;
     ParsedSphere sphere{ 0, -1,Vector3(0., 0., 0.), 0. };
@@ -33,22 +22,24 @@ Image3 hw_1_1(const std::vector<std::string> &/*params*/) {
     scene.materials.push_back(ParsedMaterial{ material });
     vars.max_depth = 0;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    //CameraUnion cam = GenerateCameraByType(cameraParameters, ENVIRONMENT_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_1_1, Illumination_hw_1_1);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    //CameraUnion cam = GenerateCameraByType(vars.cameraParameters, ENVIRONMENT_CAM);
+    Scene s = ParsedSceneToScene(scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_1, &Renderer::Illumination_hw_1_1);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_2(const std::vector<std::string> &/*params*/) {
+Image3 hw_1_2(const std::vector<std::string>&/*params*/) {
     // Homework 1.2: intersect the rays generated from hw_1_1
     // with a unit sphere located at (0, 0, -2)
 
     std::shared_ptr<Image3> img;
-    cameraParameters.width = 640;
-    cameraParameters.height = 480;
+
     Variables vars;
+    vars.cameraParameters.width = 640;
+    vars.cameraParameters.height = 480;
     Renderer render;
     ParsedScene scene;
     ParsedSphere sphere;
@@ -60,14 +51,15 @@ Image3 hw_1_2(const std::vector<std::string> &/*params*/) {
     ParsedDiffuse material{ ParsedColor{Vector3{0., 0., 0.}} };
     scene.materials.push_back(ParsedMaterial{ material });
     vars.max_depth = 0;
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_1_2, Illumination_hw_1_2);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_2, &Renderer::Illumination_hw_1_2);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_3(const std::vector<std::string> &params) {
+Image3 hw_1_3(const std::vector<std::string>& params) {
     // Homework 1.3: add camera control to hw_1_2. 
     // We will use a look at transform:
     // The inputs are "lookfrom" (camera position),
@@ -79,27 +71,30 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     // If you use the default values, it should render
     // the same image as hw_1_2.
 
-    Vector3 lookfrom = Vector3{0, 0,  0};
-    Vector3 lookat   = Vector3{0, 0, -2};
-    Vector3 up       = Vector3{0, 1,  0};
-    Real    vfov     = 90;
+    Vector3 lookfrom = Vector3{ 0, 0,  0 };
+    Vector3 lookat = Vector3{ 0, 0, -2 };
+    Vector3 up = Vector3{ 0, 1,  0 };
+    Real    vfov = 90;
     for (int i = 0; i < (int)params.size(); i++) {
         if (params[i] == "-lookfrom") {
             Real x = std::stof(params[++i]);
             Real y = std::stof(params[++i]);
             Real z = std::stof(params[++i]);
-            lookfrom = Vector3{x, y, z};
-        } else if (params[i] == "-lookat") {
+            lookfrom = Vector3{ x, y, z };
+        }
+        else if (params[i] == "-lookat") {
             Real x = std::stof(params[++i]);
             Real y = std::stof(params[++i]);
             Real z = std::stof(params[++i]);
-            lookat = Vector3{x, y, z};
-        } else if (params[i] == "-up") {
+            lookat = Vector3{ x, y, z };
+        }
+        else if (params[i] == "-up") {
             Real x = std::stof(params[++i]);
             Real y = std::stof(params[++i]);
             Real z = std::stof(params[++i]);
-            up = Vector3{x, y, z};
-        } else if (params[i] == "-vfov") {
+            up = Vector3{ x, y, z };
+        }
+        else if (params[i] == "-vfov") {
             vfov = std::stof(params[++i]);
         }
     }
@@ -111,9 +106,10 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     UNUSED(vfov);
 
     std::shared_ptr<Image3> img;
-    cameraParameters.width = 640;
-    cameraParameters.height = 480;
+
     Variables vars;
+    vars.cameraParameters.width = 640;
+    vars.cameraParameters.height = 480;
     Renderer render;
     ParsedScene scene;
     ParsedSphere sphere;
@@ -129,20 +125,21 @@ Image3 hw_1_3(const std::vector<std::string> &params) {
     //    lookat
     //    up
     //    vfov
-    cameraParameters.eye = lookfrom;
-    cameraParameters.center = lookat;
-    cameraParameters.upvec = up;
-    cameraParameters.fovy = vfov;
+    vars.cameraParameters.eye = lookfrom;
+    vars.cameraParameters.center = lookat;
+    vars.cameraParameters.upvec = up;
+    vars.cameraParameters.fovy = vfov;
 
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(scene), Miss_hw_1_3, Illumination_hw_1_3);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_3, &Renderer::Illumination_hw_1_3);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_4(const std::vector<std::string> &params) {
+Image3 hw_1_4(const std::vector<std::string>& params) {
     // Homework 1.4: render the scenes defined in hw1_scenes.h
     // output their diffuse color directly.
     if (params.size() == 0) {
@@ -159,21 +156,22 @@ Image3 hw_1_4(const std::vector<std::string> &params) {
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
     vars.max_depth = 0;
-    cameraParameters.width = 640;
-    cameraParameters.height = 480;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.width = 640;
+    vars.cameraParameters.height = 480;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_4, Illumination_hw_1_4);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_4, &Renderer::Illumination_hw_1_4);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_5(const std::vector<std::string> &params) {
+Image3 hw_1_5(const std::vector<std::string>& params) {
     // Homework 1.5: render the scenes defined in hw1_scenes.h,
     // light them using the point lights in the scene.
     if (params.size() == 0) {
@@ -190,21 +188,22 @@ Image3 hw_1_5(const std::vector<std::string> &params) {
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    cameraParameters.width = 640;
-    cameraParameters.height = 480;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.width = 640;
+    vars.cameraParameters.height = 480;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
     vars.max_depth = 0;
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_5, Illumination_hw_1_5);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_5, &Renderer::Illumination_hw_1_5);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_6(const std::vector<std::string> &params) {
+Image3 hw_1_6(const std::vector<std::string>& params) {
     // Homework 1.6: add antialiasing to homework 1.5
     if (params.size() == 0) {
         return Image3(0, 0);
@@ -215,7 +214,8 @@ Image3 hw_1_6(const std::vector<std::string> &params) {
     for (int i = 0; i < (int)params.size(); i++) {
         if (params[i] == "-spp") {
             spp = std::stoi(params[++i]);
-        } else {
+        }
+        else {
             scene_id = std::stoi(params[i]);
         }
     }
@@ -231,22 +231,23 @@ Image3 hw_1_6(const std::vector<std::string> &params) {
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
     vars.max_depth = 0;
-    cameraParameters.width = 160;
-    cameraParameters.height = 120;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
-    cameraParameters.samples_per_pixel = spp;
+    vars.cameraParameters.width = 160;
+    vars.cameraParameters.height = 120;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.samples_per_pixel = spp;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_6, Illumination_hw_1_6);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_6, &Renderer::Illumination_hw_1_6);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_7(const std::vector<std::string> &params) {
+Image3 hw_1_7(const std::vector<std::string>& params) {
     // Homework 1.7: add mirror materials to homework 1.6
     if (params.size() == 0) {
         return Image3(0, 0);
@@ -277,22 +278,23 @@ Image3 hw_1_7(const std::vector<std::string> &params) {
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    cameraParameters.width = 640;
-    cameraParameters.height = 480;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
-    cameraParameters.samples_per_pixel = spp;
+    vars.cameraParameters.width = 640;
+    vars.cameraParameters.height = 480;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.samples_per_pixel = spp;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_7, Illumination_hw_1_7);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_7, &Renderer::Illumination_hw_1_7);
     img = render.GetImage();
 
     return *img;
 }
 
-Image3 hw_1_8(const std::vector<std::string> &params) {
+Image3 hw_1_8(const std::vector<std::string>& params) {
     // Homework 1.8: parallelize HW 1.7
     if (params.size() == 0) {
         return Image3(0, 0);
@@ -323,16 +325,17 @@ Image3 hw_1_8(const std::vector<std::string> &params) {
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    cameraParameters.width = 1280;
-    cameraParameters.height = 960;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
-    cameraParameters.samples_per_pixel = spp;
+    vars.cameraParameters.width = 1280;
+    vars.cameraParameters.height = 960;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.samples_per_pixel = spp;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_8, Illumination_hw_1_8);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_8, &Renderer::Illumination_hw_1_8);
     img = render.GetImage();
 
     return *img;
@@ -369,19 +372,20 @@ Image3 hw_1_10(const std::vector<std::string>& params) {
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    cameraParameters.width = 1280;
-    cameraParameters.height = 960;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
-    cameraParameters.samples_per_pixel = spp;
+    vars.cameraParameters.width = 1280;
+    vars.cameraParameters.height = 960;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.samples_per_pixel = spp;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_10, Illumination_hw_1_10);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_10, &Renderer::Illumination_hw_1_10);
     img = render.GetImage();
 
-    return *img;    
+    return *img;
 }
 Image3 hw_1_9(const std::vector<std::string>& params)
 {
@@ -415,17 +419,18 @@ Image3 hw_1_9(const std::vector<std::string>& params)
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    cameraParameters.width = 1280;
-    cameraParameters.height = 960;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
-    cameraParameters.samples_per_pixel = spp;
-    //cameraParameters.aperture = 0.03;
+    vars.cameraParameters.width = 1280;
+    vars.cameraParameters.height = 960;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.samples_per_pixel = spp;
+    //vars.cameraParameters.aperture = 0.03;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_9, Illumination_hw_1_9);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_9, &Renderer::Illumination_hw_1_9);
     img = render.GetImage();
 
     return *img;
@@ -462,17 +467,18 @@ Image3 hw_1_11(const std::vector<std::string>& params)
     Renderer render;
     ParsedScene parsed_scene = SceneToParsedScene(scene);
 
-    cameraParameters.width = 1280;
-    cameraParameters.height = 960;
-    cameraParameters.eye = parsed_scene.camera.lookfrom;
-    cameraParameters.center = parsed_scene.camera.lookat;
-    cameraParameters.upvec = parsed_scene.camera.up;
-    cameraParameters.fovy = parsed_scene.camera.vfov;
-    cameraParameters.samples_per_pixel = spp;
-    cameraParameters.aperture = 0.04;
+    vars.cameraParameters.width = 1280;
+    vars.cameraParameters.height = 960;
+    vars.cameraParameters.eye = parsed_scene.camera.lookfrom;
+    vars.cameraParameters.center = parsed_scene.camera.lookat;
+    vars.cameraParameters.upvec = parsed_scene.camera.up;
+    vars.cameraParameters.fovy = parsed_scene.camera.vfov;
+    vars.cameraParameters.samples_per_pixel = spp;
+    vars.cameraParameters.aperture = 0.04;
 
-    CameraUnion cam = GenerateCameraByType(cameraParameters, PERSPECTIVE_CAM);
-    render.Render(cam, vars, ParsedSceneToScene(parsed_scene), Miss_hw_1_11, Illumination_hw_1_11);
+    CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
+    Scene s = ParsedSceneToScene(parsed_scene);
+    render.Render(cam, vars, s, &Renderer::Miss_hw_1_11, &Renderer::Illumination_hw_1_11);
     img = render.GetImage();
 
     return *img;

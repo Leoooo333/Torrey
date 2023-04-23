@@ -10,8 +10,8 @@
 
 #define TILE_SIZE 64
 void Renderer::Render(CameraUnion& camera, Variables& vars, Scene& scene,
-                      Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-                      Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&))
+                      Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+                      Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&))
 {
 	m_Vars = vars;
 
@@ -98,8 +98,8 @@ void Renderer::Render(CameraUnion& camera, Variables& vars, Scene& scene,
 }
 
 void Renderer::Render_AABB(CameraUnion& camera, Variables& vars, Scene& scene,
-	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&))
+	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&))
 {
 	m_Vars = vars;
 
@@ -195,8 +195,8 @@ void Renderer::Render_AABB(CameraUnion& camera, Variables& vars, Scene& scene,
 }
 
 void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
-	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&))
+	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&))
 {
 	m_Vars = vars;
 
@@ -227,9 +227,11 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 
 	Timer build_time;
 	tick(build_time);
-	root = BVH(src_shapes, 0,  0, rng_bvh);
 
-	
+
+	m_BVH = BVH(src_shapes, 0,  0, rng_bvh, m_Vars.parallel_counts_bvh);
+	// without parallel build
+	//m_BVH = BVH(src_shapes, 0, 0, rng_bvh);
 	std::cout << "Build BVH Time:	" << tick(build_time) << std::endl;
 	if (samples_per_pixel == 1)
 	{
@@ -249,7 +251,7 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 				for (int x = x0; x < x1; x++)
 				{
 					Vector3 color = Vector3(0., 0., 0.);
-					Vector2 offset = Vector2(0.5, 0.5);
+					Vector2 offset = Vector2(0.5, 0.5);	
 					Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
 
 					color = TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
@@ -285,7 +287,6 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 					{
 						Vector2 offset = { next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
 						Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
-
 						color += TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
 
 					}
@@ -318,12 +319,12 @@ std::shared_ptr<Image3> Renderer::GetImage()
 }
 
 Vector3 Renderer::TraceRay(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-	Vector3 (*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
+	Vector3 (Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 {
 	if (!FindNearstIntersection(ray, scene, m_Vars.t_min, m_Vars.t_max)) // Miss
 	{
-		return miss(ray, scene, m_Vars, max_depth);
+		return (this->*miss)(ray, scene, m_Vars, max_depth);
 	}
 	else
 	{
@@ -335,8 +336,8 @@ Vector3 Renderer::TraceRay(Ray& ray, Scene& scene, bool isReflect, int max_depth
 }
 
 Vector3 Renderer::TraceRay_AABB(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng,
+	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng,
 	std::vector<AxisAlignedBoundingBox>& boxs)
 {
 	//Shape& NearstObj = scene.shapes[ray.Objects];
@@ -359,24 +360,24 @@ Vector3 Renderer::TraceRay_AABB(Ray& ray, Scene& scene, bool isReflect, int max_
 	}
 	else
 	{
-		return miss(ray, scene, m_Vars, max_depth);
+		return (this->*miss)(ray, scene, m_Vars, max_depth);
 	}
 }
 
 Vector3 Renderer::TraceRay_BVH(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
+	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 {
-	if (!FindNearstIntersection_BVH(ray, scene, root, m_Vars.t_min, m_Vars.t_max)) // Miss
+	if (!FindNearstIntersection_BVH(ray, scene, m_BVH, m_Vars.t_min, m_Vars.t_max)) // Miss
 	{
-		return miss(ray, scene, m_Vars, max_depth);
+		return (this->*miss)(ray, scene, m_Vars, max_depth);
 	}
 	else
 	{
 		if (isReflect)
-			return HitNearst(ray, scene, true, max_depth, miss, illumination, rng);
+			return HitNearst_BVH(ray, scene, true, max_depth, miss, illumination, rng);
 		else
-			return HitNearst(ray, scene, false, max_depth, miss, illumination, rng);
+			return HitNearst_BVH(ray, scene, false, max_depth, miss, illumination, rng);
 	}
 }
 
@@ -384,7 +385,7 @@ Vector3 Renderer::TraceRay_BVH(Ray& ray, Scene& scene, bool isReflect, int max_d
 Vector3 Renderer::HitPointOriginal(const Ray& ray, Shape& NearstObj)
 {
 
-	Vector4 hit_point = Vector4(ray.Origin + ray.t_nearst * ray.Direction, 1.);
+	Vector4 hit_point = Vector4(ray.Origin + ray.Distances[0] * ray.Direction, 1.);
 	//Vector3 hit_point = NearstObj->InverseTransform * hit_point_original;
 	Vector3 hit_point_original;
 	if (NearstObj.index() == 0) // is sphere
@@ -401,14 +402,14 @@ Vector3 Renderer::HitPointOriginal(const Ray& ray, Shape& NearstObj)
 	return hit_point_original;
 }
 Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3 (*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
+	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3 (Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 {
 	Shape& NearstObj = *ray.Objects[0];
 	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
-	Vector3 hit_point = ray.Origin + ray.t_nearst * ray.Direction;
+	Vector3 hit_point = ray.Origin + ray.Distances[0] * ray.Direction;
 
-
+	int material_id;
 	Vector3 normal_transformed;
 	if (NearstObj.index() == 0) // is sphere
 	{
@@ -417,6 +418,9 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 		Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 			translate(Vector3(sphere.position.x, sphere.position.y, sphere.position.z)))) * normal_original);
 		normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
+
+		material_id = sphere.material_id;
+
 	}
 	else //is triangle
 	{
@@ -429,32 +433,28 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 		//{
 		Vector4 normal_transformed_4 = GetNormalByHitPoint(hit_point_original, triangle);
 		normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+
+		material_id = triangle.mesh->material_id;
 	}
 
 	//ray.Origin = hit_point + normal_transformed * 0.001;
 
-	Vector3 color = illumination(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
+	Vector3 color = (this->*illumination)(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
 
 	ray.Origin = hit_point;
 	ray.Objects.clear();
-	ray.t_nearst = 15000.;
+	ray.Distances.clear();
 	if (isReflect)
 	{
-		int material_id;
-		if (NearstObj.index() == 0) // sphere
-			material_id = std::get<ParsedSphere>(NearstObj).material_id;
-		else // triangle
-			material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-
 		ParsedMaterial material = scene.materials[material_id];
 		ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
 		Vector3 surface_color = std::get<Vector3>(parsed_color);
 
-		Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
-		Real noize_phi = next_pcg32_real<Real>(rng) * 2 * c_PI;
-		Vector3 sample_in_unit_sphere{ std::sin(noize_theta) * std::cos(noize_phi),
-		std::cos(noize_theta),
-		std::sin(noize_theta) * std::sin(noize_phi) };
+		//Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
+		//Real noize_phi = next_pcg32_real<Real>(rng) * 2 * c_PI;
+		//Vector3 sample_in_unit_sphere{ std::sin(noize_theta) * std::cos(noize_phi),
+		//std::cos(noize_theta),
+		//std::sin(noize_theta) * std::sin(noize_phi) };
 		
 
 		if(material.index() == 0) // diffuse
@@ -500,7 +500,7 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 				ray.Direction = reflect(ray.Direction, normal_transformed);
 
 				if (0 == max_depth--)
-					return miss(ray, scene, m_Vars, max_depth);
+					return (this->*miss)(ray, scene, m_Vars, max_depth);
 				else
 				{
 					return  color + surface_color * (kt * TraceRay(refracted_ray, scene, true, max_depth, miss, illumination, rng) 
@@ -527,14 +527,15 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 }
 
 Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
+	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 {
 	Shape& NearstObj = *ray.Objects[0];
 	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
-	Vector3 hit_point = ray.Origin + ray.t_nearst * ray.Direction;
+	Vector3 hit_point = ray.Origin + ray.Distances[0] * ray.Direction;
 
 
+	int material_id;
 	Vector3 normal_transformed;
 	if (NearstObj.index() == 0) // is sphere
 	{
@@ -543,38 +544,48 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 		Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 			translate(Vector3(sphere.position.x, sphere.position.y, sphere.position.z)))) * normal_original);
 		normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
+
+		material_id = sphere.material_id;
+
 	}
 	else //is triangle
 	{
 		Triangle& triangle = std::get<Triangle>(NearstObj);
+		//if(triangle.mesh->normals.size() > triangle.index) // has cached normal
+		//{
+		//	normal_transformed = triangle.mesh->normals[triangle.index];
+		//}
+		//else
+		//{
 		Vector4 normal_transformed_4 = GetNormalByHitPoint(hit_point_original, triangle);
 		normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+
+		material_id = triangle.mesh->material_id;
 	}
 
 	//ray.Origin = hit_point + normal_transformed * 0.001;
 
-	Vector3 color = illumination(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
+	Vector3 color = (this->*illumination)(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
 
 	ray.Origin = hit_point;
 	ray.Objects.clear();
-	ray.t_nearst = 15000.;
+	ray.Distances.clear();
 	if (isReflect)
 	{
-		int material_id;
-		if (NearstObj.index() == 0) // sphere
-			material_id = std::get<ParsedSphere>(NearstObj).material_id;
-		else // triangle
-			material_id = std::get<Triangle>(NearstObj).mesh->material_id;
+		//if (NearstObj.index() == 0) // sphere
+		//	material_id = std::get<ParsedSphere>(NearstObj).material_id;
+		//else // triangle
+		//	material_id = std::get<Triangle>(NearstObj).mesh->material_id;
 
 		ParsedMaterial material = scene.materials[material_id];
 		ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
 		Vector3 surface_color = std::get<Vector3>(parsed_color);
 
-		Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
-		Real noize_phi = next_pcg32_real<Real>(rng) * 2 * c_PI;
-		Vector3 sample_in_unit_sphere{ std::sin(noize_theta) * std::cos(noize_phi),
-		std::cos(noize_theta),
-		std::sin(noize_theta) * std::sin(noize_phi) };
+		//Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
+		//Real noize_phi = next_pcg32_real<Real>(rng) * 2 * c_PI;
+		//Vector3 sample_in_unit_sphere{ std::sin(noize_theta) * std::cos(noize_phi),
+		//std::cos(noize_theta),
+		//std::sin(noize_theta) * std::sin(noize_phi) };
 
 
 		if (material.index() == 0) // diffuse
@@ -620,7 +631,7 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 				ray.Direction = reflect(ray.Direction, normal_transformed);
 
 				if (0 == max_depth--)
-					return miss(ray, scene, m_Vars, max_depth);
+					return (this->*miss)(ray, scene, m_Vars, max_depth);
 				else
 				{
 					return  color + surface_color * (kt * TraceRay_BVH(refracted_ray, scene, true, max_depth, miss, illumination, rng)
@@ -648,12 +659,12 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 
 
 //Vector3 Renderer::HitNearst_AABB(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-//	Vector3(*miss)(const Ray&, Scene&, Variables&, int),
-//	Vector3(*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
+//	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
+//	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 //{
 //	Shape& NearstObj = scene.shapes[ray.Objects];
 //	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
-//	Vector3 hit_point = ray.Origin + ray.t_nearst * ray.Direction;
+//	Vector3 hit_point = ray.Origin + ray.Distances * ray.Direction;
 //
 //	AxisAlignedBoundingBox aabb;
 //	Vector3 normal_transformed;
@@ -680,26 +691,32 @@ Vector3 Renderer::Miss(const Ray& ray, Scene& scene, int max_depth)
 
 bool Renderer::FindNearstIntersection(Ray& ray, Scene& scene, Real t_min, Real t_max)
 {
-	Real t_nearst = 15000.;
-	int index = 0;
-	int nearest_index = -1;
 	for (Shape& shape : scene.shapes)
 	{
-		FindIntersection(ray, shape, t_min, t_max);
-		if (t_nearst > ray.t_nearst)
-		{
-			t_nearst = ray.t_nearst;
-			nearest_index = index;
-		}
-		index++;
+		ray.FindIntersection(shape, t_min, t_max);
 	}
-	if(nearest_index != -1)
+	if(ray.Distances.size() != 0)
 	{
-		ray.t_nearst = t_nearst;
+		int t_nearst = 0;
+		Real dis = ray.Distances[0];
+		for(int i = 0; i < ray.Distances.size(); i++)
+		{
+			if(ray.Distances[i] < dis)
+			{
+				dis = ray.Distances[i];
+				t_nearst = i;
+			}
+		}
+		Shape nearest_shape = *ray.Objects[t_nearst];
+		ray.Distances.clear();
 		ray.Objects.clear();
-		ray.Objects.push_back(std::make_shared<Shape>(scene.shapes[nearest_index]));
+		ray.Distances.push_back(dis);
+		ray.Objects.push_back(std::make_shared<Shape>(nearest_shape));
+
+		return true;
 	}
-	return nearest_index != -1;
+	else
+		return false;
 }
 
 bool Renderer::FindNearstIntersection_AABB(Ray& ray, Scene& scene, std::vector<AxisAlignedBoundingBox>& boxs)
@@ -721,36 +738,27 @@ bool Renderer::FindNearstIntersection_AABB(Ray& ray, Scene& scene, std::vector<A
 
 bool Renderer::FindNearstIntersection_BVH(Ray& ray, Scene& scene, BVH& node, Real t_min, Real t_max)
 {
-	Real t_nearst = 15000.;
-	Real epsilon = 1e-4;
-	Real distance = 0;
-
-	int index = 0;
-	int nearest_index = -1;
 	if (node.isHit(ray, t_min, t_max))
 	{
-		std::vector<std::shared_ptr<Shape>> objects = ray.Objects; // make a copy
-		Ray ray_test;
-		ray_test.Direction = ray.Direction;
-		ray_test.Origin = ray.Origin;
-		for (std::shared_ptr<Shape> obj : objects)
+		if (ray.Distances.size() != 0)
 		{
-			FindIntersection(ray_test, *obj, t_min, t_max);
-			if (t_nearst > ray_test.t_nearst)
+			int t_nearst = 0;
+			Real dis = ray.Distances[0];
+			for (int i = 0; i < ray.Distances.size(); i++)
 			{
-				t_nearst = ray_test.t_nearst;
-				nearest_index = index;
+				if (ray.Distances[i] < dis)
+				{
+					dis = ray.Distances[i];
+					t_nearst = i;
+				}
 			}
-			index++;
-		}
-		if (nearest_index != -1)
-		{
-			ray.t_nearst = t_nearst;
-			std::shared_ptr<Shape> nearest_obj = objects[nearest_index];
+			Shape nearest_shape = *ray.Objects[t_nearst];
+			ray.Distances.clear();
 			ray.Objects.clear();
-			ray.Objects.push_back(nearest_obj);
+			ray.Distances.push_back(dis);
+			ray.Objects.push_back(std::make_shared<Shape>(nearest_shape));
+			return true;
 		}
-		return nearest_index != -1;
 	}
 	else
 		return false;
@@ -788,7 +796,7 @@ bool Renderer::FindNearstIntersection_BVH(Ray& ray, Scene& scene, BVH& node, Rea
 //
 //		if (shadow_ray.Objects == -1)
 //			visibility = 1.;
-//		else if (shadow_ray.Objects != -1 && shadow_ray.t_nearst > d)
+//		else if (shadow_ray.Objects != -1 && shadow_ray.Distances > d)
 //			visibility = 1.;
 //		else
 //			visibility = 0;
@@ -830,40 +838,40 @@ Real reflectance(Real cosine, Real ref_idx)
 	r0 = r0 * r0;
 	return r0 + (1 - r0) * pow((1 - cosine), 5);
 }
-Vector3 Miss_hw_1_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 
 	return Vector3(ray.Direction.x, ray.Direction.y, 0.);
 }
-Vector3 Illumination_hw_1_1(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_1(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	Vector3 color(1., 0., 0.);
 	return color;
 }
 
-Vector3 Miss_hw_1_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Vector3(0.5, 0.5, 0.5);
 }
-Vector3 Illumination_hw_1_2(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_2(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return (Normal + Vector3(1., 1., 1.)) / 2.;
 }
 
-Vector3 Miss_hw_1_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Vector3(0.5, 0.5, 0.5);
 }
-Vector3 Illumination_hw_1_3(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_3(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return (Normal + Vector3(1., 1., 1.)) / 2.;
 }
 
-Vector3 Miss_hw_1_4(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_4(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Vector3(0.5, 0.5, 0.5);
 }
-Vector3 Illumination_hw_1_4(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_4(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	int material_id;
 	if (NearstObj.index() == 0) // sphere
@@ -876,11 +884,11 @@ Vector3 Illumination_hw_1_4(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vect
 	return color;
 }
 
-Vector3 Miss_hw_1_5(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_5(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Vector3(0.5, 0.5, 0.5);
 }
-Vector3 Illumination_hw_1_5(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_5(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	int material_id;
 	if (NearstObj.index() == 0) // sphere
@@ -943,24 +951,24 @@ Vector3 Illumination_hw_1_5(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vect
 	return color;
 }
 
-Vector3 Miss_hw_1_6(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_6(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Miss_hw_1_5(ray, scene, vars, max_depth);
 }
-Vector3 Illumination_hw_1_6(Ray& vis_ray, bool isPrimary_ray, Vector3 HitPoint,
+Vector3 Renderer::Illumination_hw_1_6(Ray& vis_ray, bool isPrimary_ray, Vector3 HitPoint,
 	Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Illumination_hw_1_5(vis_ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
 }
 
-Vector3 Miss_hw_1_7(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_7(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	//if (*remain_reflect > 0)
 	//	return Vector3(0., 0., 0.);
 	return Vector3(0.5, 0.5, 0.5);
 }
 
-Vector3 Illumination_hw_1_7(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_7(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 
 	int material_id;
@@ -1032,11 +1040,11 @@ Vector3 Illumination_hw_1_7(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vect
 	return color;
 }
 
-Vector3 Miss_hw_1_8(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_8(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Miss_hw_1_7(ray, scene, vars, max_depth);
 }
-Vector3 Illumination_hw_1_8(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_8(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Illumination_hw_1_7(ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
 }
@@ -1044,7 +1052,7 @@ Vector3 Illumination_hw_1_8(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vect
 
 
 
-Vector3 Miss_hw_1_10(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_10(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	
 	auto t = (-ray.Direction.y + 2.0) * 0.73;
@@ -1053,7 +1061,7 @@ Vector3 Miss_hw_1_10(const Ray& ray, Scene& scene, Variables& vars, int max_dept
 	//return Vector3(0.5, 0.5, 0.5);
 }
 
-Vector3 Illumination_hw_1_10(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_10(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 
 	int material_id;
@@ -1068,6 +1076,10 @@ Vector3 Illumination_hw_1_10(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vec
 	Vector3 light_direction = Vector3(0., 0., 0.);
 
 	Vector3 color{ 0., 0., 0. };
+	//parallel_for([&](int counts)
+	//	{
+
+	//	}, (int64_t)10);
 	for (ParsedLight light : scene.lights)
 	{
 		Real d = 0;
@@ -1129,7 +1141,7 @@ Vector3 Illumination_hw_1_10(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vec
 	return color;
 }
 
-Vector3 Miss_hw_1_11(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_11(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 
 	//auto t = (ray.Direction.y + 1.0) / 3;
@@ -1138,12 +1150,12 @@ Vector3 Miss_hw_1_11(const Ray& ray, Scene& scene, Variables& vars, int max_dept
 	return Miss_hw_1_10(ray, scene, vars, max_depth);
 }
 
-Vector3 Illumination_hw_1_11(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_11(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Illumination_hw_1_10(ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
 }
 
-Vector3 Miss_hw_1_9(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_1_9(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 
 	auto t = (-ray.Direction.y + 2.0) * 0.73;
@@ -1153,13 +1165,13 @@ Vector3 Miss_hw_1_9(const Ray& ray, Scene& scene, Variables& vars, int max_depth
 	//return Miss_hw_1_10(ray, scene, vars, max_depth);
 }
 
-Vector3 Illumination_hw_1_9(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_1_9(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Illumination_hw_1_10(ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
 }
 
 
-Vector3 Miss_hw_2_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_2_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 
 	//auto t = (-ray.Direction.y + 2.0) * 0.73;
@@ -1168,7 +1180,7 @@ Vector3 Miss_hw_2_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth
 	return Vector3(0.5, 0.5, 0.5);
 }
 
-Vector3 Illumination_hw_2_1(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_2_1(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	Triangle& triangle = std::get<Triangle>(NearstObj);
 	Vector3 p1 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][0]];
@@ -1184,42 +1196,116 @@ Vector3 Illumination_hw_2_1(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vect
 	return Vector3(1. - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 }
 
-Vector3 Miss_hw_2_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_2_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return Miss_hw_2_1(ray, scene, vars, max_depth);
 }
 
-Vector3 Illumination_hw_2_2(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_2_2(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Illumination_hw_2_1(ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
 }
 
-Vector3 Miss_hw_2_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_2_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return scene.background_color;
 }
 
-Vector3 Illumination_hw_2_3(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_2_3(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Illumination_hw_1_10(ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
 }
 
-Vector3 Miss_hw_2_4(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_2_4(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return scene.background_color;
 }
 
-Vector3 Illumination_hw_2_4(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_2_4(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
 	return Vector3(1., 1., 1.);
 }
 
-Vector3 Miss_hw_2_5(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+Vector3 Renderer::Miss_hw_2_5(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
 {
 	return scene.background_color;
 }
 
-Vector3 Illumination_hw_2_5(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+Vector3 Renderer::Illumination_hw_2_5(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
 {
-	return Illumination_hw_2_3(ray, isPrimary_ray, HitPoint, Normal, NearstObj, scene, vars);
+	int material_id;
+	if (NearstObj.index() == 0) // sphere
+		material_id = std::get<ParsedSphere>(NearstObj).material_id;
+	else // triangle
+		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
+	ParsedMaterial material = scene.materials[material_id];
+	ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color = std::get<Vector3>(parsed_color);
+
+	Vector3 light_direction = Vector3(0., 0., 0.);
+
+	Vector3 color{ 0., 0., 0. };
+	//parallel_for([&](int counts)
+	//	{
+
+	//	}, (int64_t)10);
+	for (ParsedLight light : scene.lights)
+	{
+		Real d = 0;
+		Real visibility = 1.;
+		Vector3 position;
+		Vector3 intensity;
+
+		if (light.index() == 0) // is PointLight
+		{
+			ParsedPointLight point_light = std::get<ParsedPointLight>(light);
+			position = point_light.position;
+			intensity = point_light.intensity;
+			light_direction = HitPoint - point_light.position;
+			d = length(light_direction);
+		}
+		else {} // is AreaLight
+
+		Ray shadow_ray = { HitPoint, -normalize(light_direction) };
+		if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, d))
+			visibility = 1.;
+		else
+			visibility = 0;
+
+		light_direction = normalize(light_direction);
+
+		//For rainbow color
+		//light->light_color = vec4(sin((ray.Origin.x + 10.) / (12.7 / 1.5)), sin((ray.Origin.z + 50.) / (31.8 / 1.5)), cos((ray.Origin.x + 10.) / (12.7 / 1.5)), 1.);
+
+		Vector3 diffuse;
+		Vector3 normal = normalize(Normal);
+		if (dot(ray.Direction, normal) > 0)
+		{
+			normal = -normal;
+		}
+		diffuse = intensity * surface_color *
+			max(dot(-light_direction, normal), 0.);
+
+		Vector3 direction = normalize(ray.Direction);
+
+		Vector3 halfvec = normalize(-direction - light_direction);
+		Vector3 specular = intensity * surface_color *
+			pow(max(dot(halfvec, normalize(normal)), 0.), 1000000);
+
+		Vector3 transmission{ 0., 0., 0. };
+
+		diffuse = diffuse / (vars.attenuation_const + vars.attenuation_linear * d + vars.attenuation_quadratic * d * d);
+		specular = specular / (vars.attenuation_const + vars.attenuation_linear * d + vars.attenuation_quadratic * d * d);
+		if (material.index() == 0)// diffuse
+			color += diffuse * visibility * c_INVPI;
+		else if (material.index() == 1) // mirror
+			//color += specular * visibility * c_INVPI;
+			;
+		else if (material.index() == 2) // plastic
+			color += transmission * visibility * c_INVPI;
+	}
+
+	//color += ambient + emission;
+
+	return color;
 }

@@ -10,7 +10,7 @@
       "args": [
         "-hw",
         "2_5",
-        " ../scenes/teapot/teapot_constant.xml"
+        "../scenes/party/party.xml"
       ]
     }
   ]
