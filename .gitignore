@@ -47,3 +47,9 @@ scenes/
 *.db
 *.db-wal
 *.db-shm
+.vs/CSE168/v16/.suo
+*.sqlite
+.vs/CSE168/v16/.suo
+.vs/CSE168/v16/.suo
+*.sqlite
+*.sqlite

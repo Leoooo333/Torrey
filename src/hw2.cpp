@@ -273,7 +273,7 @@ Image3 hw_2_7(const std::vector<std::string>& params) {
     vars.cameraParameters.samples_per_pixel = 64;
 
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 1;
+    vars.parallel_counts_bvh = 2;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_2_5, &Renderer::Illumination_hw_2_5);

@@ -763,7 +763,6 @@ bool Renderer::FindNearstIntersection(Ray& ray, Scene& scene, Real t_min, Real t
 	{
 		if (ray.FindIntersection(shape, t_min, t_max))
 		{
-			t_min = t_min;
 			t_max = ray.distance;
 		}
 	}
