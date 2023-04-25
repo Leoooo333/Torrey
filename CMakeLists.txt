@@ -70,6 +70,7 @@ set(SRCS src/3rdparty/miniz.h
          src/aabb.cpp
          src/BVH.cpp)
 
+
 add_library(torrey_lib STATIC ${SRCS})
 add_executable(torrey src/main.cpp)
 

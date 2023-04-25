@@ -18,8 +18,8 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, size_t start, si
     if (object_span == 1) {
         left_shape = shapes[start];
         right_shape = shapes[start];
-        box_left = GetAabbByShape(*left_shape);
-        box_right = GetAabbByShape(*right_shape);
+        box_left = GetAabbByShape(*left_shape, time1 - time0);
+        box_right = GetAabbByShape(*right_shape, time1 - time0);
     }
     else if (object_span == 2) {
         if (comparator(shapes[start], shapes[start + 1])) {
@@ -30,13 +30,14 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, size_t start, si
             left_shape = shapes[start + 1];
             right_shape = shapes[start];
         }
-        box_left = GetAabbByShape(*left_shape);
-        box_right = GetAabbByShape(*right_shape);
+        box_left = GetAabbByShape(*left_shape, time1 - time0);
+        box_right = GetAabbByShape(*right_shape, time1 - time0);
     }
     else {
-        std::sort(shapes.begin() + start, shapes.begin() + end, comparator);
+        //std::sort(shapes.begin() + start, shapes.begin() + end, comparator);
 
         auto mid = start + object_span / 2;
+        std::nth_element(shapes.begin() + start, shapes.begin() + mid, shapes.begin() + end, comparator);
         left = std::make_shared<BVH>(shapes, start, mid, time0, time1, rng);
         right = std::make_shared<BVH>(shapes, mid, end, time0, time1, rng);
 
@@ -46,11 +47,11 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, size_t start, si
 
     box = surrounding_box(box_left, box_right);
 }
-BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, double time1, pcg32_state& rng, const int parallel_counts)
+BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, double time1, pcg32_state& rng, const int parallel_counts, const int tile_size_bvh)
 {
     std::vector<std::shared_ptr<BVH>> bvh_list;
     std::vector<std::vector<std::shared_ptr<Shape>>> shapes_tiles_list;
-	const int tile_size = 1;
+	const int tile_size = tile_size_bvh;
     int num_tiles = (parallel_counts + tile_size - 1) / tile_size;
     int shapes_size = src_shapes.size();
 
@@ -72,37 +73,16 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, do
         int i1 = min(i0 + tile_size, parallel_counts);
         for(int i = i0; i < i1; i++)
         {
-            BVH bvh = BVH(shapes_tiles_list[i], time0, time1, rng);
+            BVH bvh(shapes_tiles_list[i], time0, time1, rng);
             bvh_list.push_back(std::make_shared<BVH>(bvh));
         }
 
     }, num_tiles);
 
- //   for(int i = 0; i < (int)log2(parallel_counts); i++)
- //   {
- //       ;
- //   }
 	for (int i = 0; i < num_tiles; i++)
     {
         bvh_list.push_back(std::make_shared<BVH>(BVH(shapes_tiles_list[i], 0, 0, rng)));
     }
- //   std::vector<std::shared_ptr<BVH>> bvh_list_new;
-
- //   for (int i = 0; i < 8; i++)
- //   {
- //       bvh_list_new.push_back(std::make_shared<BVH>(BVH(bvh_list[i], bvh_list[16 - 1 - i])));
- //   }
- //   bvh_list.clear();
- //   for(int i = 0; i < 4; i++)
- //   {
- //       bvh_list.push_back(std::make_shared<BVH>(BVH(bvh_list_new[i], bvh_list_new[8 - 1 - i])));
- //   }
- //   bvh_list_new.clear();
- //   for (int i = 0; i < 2; i++)
- //   {
- //       bvh_list_new.push_back(std::make_shared<BVH>(BVH(bvh_list[i], bvh_list[4 - 1 - i])));
- //   }
- //   bvh_list.clear();
     BVH root = *build_bvh_by_list(bvh_list, rng);
     left = root.left;
     right = root.right;
