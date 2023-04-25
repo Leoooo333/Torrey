@@ -22,9 +22,9 @@ EnvironmentCamera::EnvironmentCamera(CameraParameters cameraParameters)
 	ReSetCamera(cameraParameters);
 }
 
-Ray AbstractCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time) { return Ray{}; }
+Ray AbstractCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time) { return Ray{}; }
 
-Ray PerspectiveCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time)
+Ray PerspectiveCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time)
 {
 	Vector2 coord = { (offset.x + (Real)x) / m_CameraParameters.width, (offset.y + (Real)y) / m_CameraParameters.height };
 	coord = coord * 2. - 1.;
@@ -60,7 +60,7 @@ Ray PerspectiveCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32
 	return ray;
 }
 
-Ray EnvironmentCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time)
+Ray EnvironmentCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time)
 {
 	Vector2 coord = { (offset.x + (Real)x) / m_CameraParameters.width, (offset.y + (Real)y) / m_CameraParameters.height };
 

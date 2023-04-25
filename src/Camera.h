@@ -29,7 +29,7 @@ public:
 	AbstractCamera() {};
 	AbstractCamera(CameraParameters cameraParameters);
 	void OnResize(int width, int height);
-	Ray CaculateRayDirections(int x, int y, Vector2 offset=Vector2(0.5, 0.5), pcg32_state rng=init_pcg32(), Real time=0);
+	Ray CalculateRayDirections(int x, int y, Vector2 offset=Vector2(0.5, 0.5), pcg32_state rng=init_pcg32(), Real time=0);
 	void ReSetCamera(CameraParameters cameraParameters);
 	CameraParameters m_CameraParameters;
 	Matrix4x4 m_Projection;
@@ -42,14 +42,14 @@ class PerspectiveCamera : public AbstractCamera
 {
 public:
 	PerspectiveCamera(CameraParameters cameraParameters);
-	Ray CaculateRayDirections(int x, int y, Vector2 offset = Vector2(0.5, 0.5), pcg32_state rng=init_pcg32(), Real time = 0);
+	Ray CalculateRayDirections(int x, int y, Vector2 offset = Vector2(0.5, 0.5), pcg32_state rng=init_pcg32(), Real time = 0);
 };
 
 class EnvironmentCamera : public AbstractCamera
 {
 public:
 	EnvironmentCamera(CameraParameters cameraParameters);
-	Ray CaculateRayDirections(int x, int y, Vector2 offset = Vector2(0.5, 0.5), pcg32_state rng=init_pcg32(), Real time = 0);
+	Ray CalculateRayDirections(int x, int y, Vector2 offset = Vector2(0.5, 0.5), pcg32_state rng=init_pcg32(), Real time = 0);
 };
 
 using CameraUnion = std::variant<PerspectiveCamera, EnvironmentCamera>;

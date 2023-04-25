@@ -69,12 +69,12 @@ struct Ray
     Vector3 Origin;
     Vector3 Direction;
 	Real time;
-    std::vector<std::shared_ptr<Shape>> Objects;
-    std::vector<Real> Distances;
+    std::shared_ptr<Shape> object;
+    Real distance;
+
 	bool FindIntersection(ParsedSphere& sphere, Matrix4x4 transform, Real t_min, Real t_max)
 	{
 		Matrix4x4 inverseTransform = inverse(transform);
-
 		Vector4 origin_4 = Vector4(inverseTransform * Vector4(Origin, 1.));
 		Vector3 origin = Vector3(origin_4.x, origin_4.y, origin_4.z);
 		Vector4 direction_4 = Vector4(inverseTransform * Vector4(Direction, 0.));
@@ -99,8 +99,8 @@ struct Ray
 				nearest_t = t1;
 			if (nearest_t >= t_min && nearest_t < t_max)
 			{
-				Objects.push_back(std::make_shared<Shape>(Shape{ sphere }));
-				Distances.push_back(nearest_t);
+				object = std::make_shared<Shape>(Shape{ sphere });
+				distance = nearest_t;
 				return true;
 			}
 			else
@@ -144,8 +144,8 @@ struct Ray
 		{
 			if (nearest_t >= t_min && nearest_t < t_max)
 			{
-				Objects.push_back(std::make_shared<Shape>(Shape{ triangle }));
-				Distances.push_back(nearest_t);
+				object = std::make_shared<Shape>(Shape{ triangle });
+				distance = nearest_t;
 				return true;
 			}
 			else
@@ -177,8 +177,8 @@ struct Ray
 		{
 			if (nearest_t >= t_min && nearest_t < t_max)
 			{
-				Objects.push_back(std::make_shared<Shape>(Shape{ triangle }));
-				Distances.push_back(nearest_t);
+				object = std::make_shared<Shape>(Shape{ triangle });
+				distance = nearest_t;
 				return true;
 			}
 			else

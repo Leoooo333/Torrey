@@ -111,7 +111,7 @@ bool BVH::isHit(Ray& ray, double t_min, double t_max)
     else
     {
         bool hit_left = left->isHit(ray, t_min, t_max);
-        bool hit_right = right->isHit(ray, t_min, hit_left ? ray.Distances[0] : t_max);
+        bool hit_right = right->isHit(ray, t_min, hit_left ? ray.distance: t_max);
         return hit_left || hit_right;
     }
 }
