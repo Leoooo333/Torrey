@@ -47,3 +47,4 @@ scenes/
 *.db
 *.db-wal
 *.db-shm
+/.vs/CG/v16/.suo
