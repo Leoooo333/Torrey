@@ -75,6 +75,18 @@ int main(int argc, char *argv[]) {
     } else if (hw_num == "2_5") {
         Image3 img = hw_2_5(parameters);
         imwrite("hw_2_5.exr", img);
+    } else if (hw_num == "2_6") {
+        Image3 img = hw_2_6(parameters);
+        imwrite("hw_2_6.exr", img);
+    } else if (hw_num == "2_7") {
+        Image3 img = hw_2_7 (parameters);
+        imwrite("hw_2_7.exr", img);
+    } else if (hw_num == "2_8") {
+        Image3 img = hw_2_8(parameters);
+        imwrite("hw_2_8.exr", img);
+    } else if (hw_num == "2_9") {
+        Image3 img = hw_2_9(parameters);
+        imwrite("hw_2_9.exr", img);
     } else if (hw_num == "3_1") {
         Image3 img = hw_3_1(parameters);
         imwrite("hw_3_1.exr", img);

@@ -68,8 +68,10 @@ struct Ray
 {
     Vector3 Origin;
     Vector3 Direction;
-    std::vector<std::shared_ptr<Shape>> Objects;
-    std::vector<Real> Distances;
+	Real time;
+    std::shared_ptr<Shape> object;
+    Real distance;
+
 	bool FindIntersection(ParsedSphere& sphere, Matrix4x4 transform, Real t_min, Real t_max)
 	{
 		Matrix4x4 inverseTransform = inverse(transform);
@@ -97,8 +99,8 @@ struct Ray
 				nearest_t = t1;
 			if (nearest_t >= t_min && nearest_t < t_max)
 			{
-				Objects.push_back(std::make_shared<Shape>(Shape{ sphere }));
-				Distances.push_back(nearest_t);
+				object = std::make_shared<Shape>(Shape{ sphere });
+				distance = nearest_t;
 				return true;
 			}
 			else
@@ -108,12 +110,56 @@ struct Ray
 
 	bool FindIntersection(ParsedSphere& sphere, Real t_min, Real t_max)
 	{
-		return FindIntersection(sphere, translate(Vector3(sphere.position.x, sphere.position.y, sphere.position.z)), t_min, t_max);
+		Vector3 center = { sphere.position.x, sphere.position.y, sphere.position.z };
+		if (time != 0) // no motion
+			center += time * Vector3{ 0., 0.05, 0. };
+		return FindIntersection(sphere, translate(center), t_min, t_max);
+	}
+
+
+	bool FindIntersection(Triangle& triangle, Matrix4x4 transform, Real t_min, Real t_max)
+	{
+		Vector3 orig = Origin;
+		if (time != 0) // no motion
+			orig += -time * Vector3{ 0., 0.05, 0. };
+		Vector3 direct = Direction;
+		Vector4 p1_4 = transform* Vector4(triangle.mesh->positions[triangle.mesh->indices[triangle.index][0]], 1.);
+		Vector3 p1 = Vector3(p1_4.x, p1_4.y, p1_4.z);
+		Vector4 p2_4 = transform * Vector4(triangle.mesh->positions[triangle.mesh->indices[triangle.index][1]], 1.);
+		Vector3 p2 = Vector3(p2_4.x, p2_4.y, p2_4.z);
+		Vector4 p3_4 = transform * Vector4(triangle.mesh->positions[triangle.mesh->indices[triangle.index][2]], 1.);
+		Vector3 p3 = Vector3(p3_4.x, p3_4.y, p3_4.z);
+
+
+		Vector3 normal = normalize(cross((p2 - p1), (p3 - p1)));
+		normal = normalize(normal);
+		Real nearest_t = dot((p1 - orig), normal) / dot(direct, normal);
+		Vector3 p = orig + nearest_t * direct;
+
+		Vector3 c1 = cross(p2 - p1, p - p1);
+		Vector3 c2 = cross(p3 - p2, p - p2);
+		Vector3 c3 = cross(p1 - p3, p - p3);
+
+		if (dot(c1, c2) >= 0 && dot(c2, c3) >= 0 && dot(c1, c3) >= 0)
+		{
+			if (nearest_t >= t_min && nearest_t < t_max)
+			{
+				object = std::make_shared<Shape>(Shape{ triangle });
+				distance = nearest_t;
+				return true;
+			}
+			else
+				return false;
+		}
+		else
+			return false;
 	}
 
 	bool FindIntersection(Triangle& triangle, Real t_min, Real t_max)
 	{
 		Vector3 orig = Origin;
+		if (time != 0) // no motion
+			orig += -time * Vector3{ 0., 0.05, 0. };
 		Vector3 direct = Direction;
 		Vector3 p1 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][0]];
 		Vector3 p2 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][1]];
@@ -131,8 +177,8 @@ struct Ray
 		{
 			if (nearest_t >= t_min && nearest_t < t_max)
 			{
-				Objects.push_back(std::make_shared<Shape>(Shape{ triangle }));
-				Distances.push_back(nearest_t);
+				object = std::make_shared<Shape>(Shape{ triangle });
+				distance = nearest_t;
 				return true;
 			}
 			else
@@ -140,6 +186,15 @@ struct Ray
 		}
 		else
 			return false;
+	}
+
+
+	bool FindIntersection(Shape& shape, Matrix4x4 transform, Real t_min, Real t_max)
+	{
+		if (shape.index() == 0) // sphere
+			return FindIntersection(std::get<ParsedSphere>(shape), transform, t_min, t_max);
+		else
+			return FindIntersection(std::get<Triangle>(shape), transform, t_min, t_max);
 	}
 
 	bool FindIntersection(Shape& shape, Real t_min, Real t_max)

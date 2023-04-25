@@ -39,7 +39,7 @@ struct HW1_Scene {
     std::vector<PointLight> lights; 
 };
 
-HW1_Scene hw1_scene_0{
+inline HW1_Scene hw1_scene_0{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -59,7 +59,7 @@ HW1_Scene hw1_scene_0{
     }
 };
 
-HW1_Scene hw1_scene_1{
+inline HW1_Scene hw1_scene_1{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -85,7 +85,7 @@ HW1_Scene hw1_scene_1{
     }
 };
 
-HW1_Scene hw1_scene_2{
+inline HW1_Scene hw1_scene_2{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -108,7 +108,7 @@ HW1_Scene hw1_scene_2{
     }
 };
 
-HW1_Scene hw1_scene_3{
+inline HW1_Scene hw1_scene_3{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -143,7 +143,7 @@ HW1_Scene hw1_scene_3{
     }
 };
 
-HW1_Scene hw1_scene_4{
+inline HW1_Scene hw1_scene_4{
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -219,7 +219,7 @@ HW1_Scene hw1_scene_4{
         {Vector3{50, 5, 5}, Vector3{5, 5, -5}},
     }
 };
-HW1_Scene hw1_scene_5{// plastic version of scene 0
+inline HW1_Scene hw1_scene_5{// plastic version of scene 0
     Camera{
         Vector3{0, 0,  0}, // lookfrom
         Vector3{0, 0, -1}, // lookat
@@ -240,7 +240,7 @@ HW1_Scene hw1_scene_5{// plastic version of scene 0
 };
 
 
-HW1_Scene hw1_scene_6{ // plastic version of scene 1
+inline HW1_Scene hw1_scene_6{ // plastic version of scene 1
 Camera{
     Vector3{0, 0,  0}, // lookfrom
     Vector3{0, 0, -1}, // lookat
@@ -267,7 +267,7 @@ std::vector<PointLight>{
 };
 
 
-HW1_Scene hw1_scene_7{ // Plastic version of scene 3
+inline HW1_Scene hw1_scene_7{ // Plastic version of scene 3
 Camera{
     Vector3{0, 0,  0}, // lookfrom
     Vector3{0, 0, -1}, // lookat
@@ -303,7 +303,7 @@ std::vector<PointLight>{
 };
 
 
-HW1_Scene hw1_scene_8{
+inline HW1_Scene hw1_scene_8{
 Camera{
     Vector3{0, 0,  0}, // lookfrom
     Vector3{0, 0, -1}, // lookat
@@ -380,7 +380,7 @@ std::vector<PointLight>{
 }
 };
 
-HW1_Scene hw1_scene_9{ // plastic version of scene 1
+inline HW1_Scene hw1_scene_9{ // plastic version of scene 1
 Camera{
     Vector3{0., 0.,  0.}, // lookfrom
     Vector3{0., 0., -1.}, // lookat
@@ -1663,11 +1663,11 @@ std::vector<PointLight>{
     { Vector3{  100,   100, 100}, Vector3{ 0., -0.16, -2.} },*/
 }
 };
-HW1_Scene hw1_scenes[] = {
+inline HW1_Scene hw1_scenes[] = {
     hw1_scene_0, hw1_scene_1, hw1_scene_2, hw1_scene_3, hw1_scene_4, hw1_scene_5, hw1_scene_6, hw1_scene_7, hw1_scene_8, hw1_scene_9
 };
 
-ParsedScene SceneToParsedScene(HW1_Scene& scene)
+inline ParsedScene SceneToParsedScene(HW1_Scene& scene)
 {
     ParsedScene parsed_scene;
 

@@ -43,7 +43,7 @@ void Renderer::Render(CameraUnion& camera, Variables& vars, Scene& scene,
 				{
 					Vector3 color = Vector3(0., 0., 0.);
 					Vector2 offset = Vector2(0.5, 0.5);
-					Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
+					Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
 
 					color = TraceRay(ray, scene, true, vars.max_depth, miss, illumination, rng);
 
@@ -79,7 +79,7 @@ void Renderer::Render(CameraUnion& camera, Variables& vars, Scene& scene,
 					for (int s = 0; s < samples_per_pixel; s++)
 					{
 						Vector2 offset = { next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
-						Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
+						Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
 
 						color += TraceRay(ray, scene, true, vars.max_depth, miss, illumination, rng);
 
@@ -141,7 +141,7 @@ void Renderer::Render_AABB(CameraUnion& camera, Variables& vars, Scene& scene,
 				{
 					Vector3 color = Vector3(0., 0., 0.);
 					Vector2 offset = Vector2(0.5, 0.5);
-					Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
+					Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
 
 					color = TraceRay_AABB(ray, scene, true, vars.max_depth, miss, illumination, rng, boxs);
 
@@ -175,7 +175,7 @@ void Renderer::Render_AABB(CameraUnion& camera, Variables& vars, Scene& scene,
 					for (int s = 0; s < samples_per_pixel; s++)
 					{
 						Vector2 offset = { next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
-						Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
+						Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
 
 						color += TraceRay_AABB(ray, scene, true, vars.max_depth, miss, illumination, rng, boxs);
 
@@ -229,9 +229,12 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 	tick(build_time);
 
 
-	m_BVH = BVH(src_shapes, 0,  0, rng_bvh, m_Vars.parallel_counts_bvh);
-	// without parallel build
-	//m_BVH = BVH(src_shapes, 0, 0, rng_bvh);
+	if(m_Vars.parallel_counts_bvh > 1)
+	{
+		m_BVH = BVH(src_shapes, 0, 0, rng_bvh, m_Vars.parallel_counts_bvh, m_Vars.tile_size_bvh);
+	}
+	else 	// without parallel build
+		m_BVH = BVH(src_shapes, 0, 0, rng_bvh);
 	std::cout << "Build BVH Time:	" << tick(build_time) << std::endl;
 	if (samples_per_pixel == 1)
 	{
@@ -240,7 +243,31 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 		int num_tiles_y = (height + tile_size - 1) / tile_size;
 		ProgressReporter reporter(num_tiles_y * num_tiles_x);
 
-		parallel_for([&](const Vector2i& tile) {
+		if(m_Vars.motion_blur_samples == 0)
+			parallel_for([&](const Vector2i& tile) {
+				pcg32_state rng = init_pcg32(tile[1] * num_tiles_x + tile[0] /* seed */);
+				int x0 = tile[0] * tile_size;
+				int x1 = min(x0 + tile_size, width);
+				int y0 = tile[1] * tile_size;
+				int y1 = min(y0 + tile_size, height);
+				for (int y = y0; y < y1; y++)
+				{
+					for (int x = x0; x < x1; x++)
+					{
+						Vector3 color = Vector3(0., 0., 0.);
+						Vector2 offset = Vector2(0.5, 0.5);	
+						Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
+
+						color = TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
+
+						(*m_Image)(x, height - 1 - y) = color;
+
+					}
+				}
+				reporter.update(1);
+				}, Vector2i(num_tiles_x, num_tiles_y));
+		else
+			parallel_for([&](const Vector2i& tile) {
 			pcg32_state rng = init_pcg32(tile[1] * num_tiles_x + tile[0] /* seed */);
 			int x0 = tile[0] * tile_size;
 			int x1 = min(x0 + tile_size, width);
@@ -251,17 +278,22 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 				for (int x = x0; x < x1; x++)
 				{
 					Vector3 color = Vector3(0., 0., 0.);
-					Vector2 offset = Vector2(0.5, 0.5);	
-					Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
+					for (int t = 0; t < m_Vars.motion_blur_samples; t++)
+					{
+						Vector2 offset = Vector2(0.5, 0.5);
+						Real time_now = next_pcg32_real<Real>(rng);
+						Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng, time_now); }, camera);
 
-					color = TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
+						color += TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
+					}
 
-					(*m_Image)(x, height - 1 - y) = color;
+
+					(*m_Image)(x, height - 1 - y) = color / (Real)m_Vars.motion_blur_samples;
 
 				}
 			}
 			reporter.update(1);
-			}, Vector2i(num_tiles_x, num_tiles_y));
+				}, Vector2i(num_tiles_x, num_tiles_y));
 		m_RenderTime = tick(start_time);
 		std::cout << "Total Time:	" << m_RenderTime << std::endl;
 	}
@@ -272,7 +304,39 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 		int num_tiles_y = (height + tile_size - 1) / tile_size;
 		ProgressReporter reporter(num_tiles_y * num_tiles_x);
 
-		parallel_for([&](const Vector2i& tile) {
+		if (m_Vars.motion_blur_samples == 0)
+			parallel_for([&](const Vector2i& tile) {
+				pcg32_state rng = init_pcg32(tile[1] * num_tiles_x + tile[0] /* seed */);
+				int x0 = tile[0] * tile_size;
+				int x1 = min(x0 + tile_size, width);
+				int y0 = tile[1] * tile_size;
+				int y1 = min(y0 + tile_size, height);
+				for (int y = y0; y < y1; y++)
+				{
+					for (int x = x0; x < x1; x++)
+					{
+						Vector3 color = Vector3(0., 0., 0.);
+						for (int s = 0; s < samples_per_pixel; s++)
+						{
+							Vector2 offset = { next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
+							Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
+							color += TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
+
+						}
+						color /= (Real)samples_per_pixel;
+						(*m_Image)(x, height - 1 - y) = color;
+
+						//m_Vars.isPrimary_ray = true;
+					}
+					//if (y % 1 == 0)
+					//{
+					//	std::cout << "Finish:	" << (Real)y / (Real)height << std::endl;
+					//}
+				}
+				reporter.update(1);
+				}, Vector2i(num_tiles_x, num_tiles_y));
+		else
+			parallel_for([&](const Vector2i& tile) {
 			pcg32_state rng = init_pcg32(tile[1] * num_tiles_x + tile[0] /* seed */);
 			int x0 = tile[0] * tile_size;
 			int x1 = min(x0 + tile_size, width);
@@ -286,9 +350,13 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 					for (int s = 0; s < samples_per_pixel; s++)
 					{
 						Vector2 offset = { next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
-						Ray ray = std::visit([=](auto& cam) {return cam.CaculateRayDirections(x, y, offset, rng); }, camera);
-						color += TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
-
+						for (int t = 0; t < m_Vars.motion_blur_samples; t++)
+						{
+							Real time_now = next_pcg32_real<Real>(rng);
+							Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng, time_now); }, camera);
+							color += TraceRay_BVH(ray, scene, true, vars.max_depth, miss, illumination, rng);
+						}
+						color /= (Real)m_Vars.motion_blur_samples;
 					}
 					color /= (Real)samples_per_pixel;
 					(*m_Image)(x, height - 1 - y) = color;
@@ -301,7 +369,7 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 				//}
 			}
 			reporter.update(1);
-			}, Vector2i(num_tiles_x, num_tiles_y));
+				}, Vector2i(num_tiles_x, num_tiles_y));
 		m_RenderTime = tick(start_time);
 		std::cout << "Total Time:	" << m_RenderTime << std::endl;
 	}
@@ -356,7 +424,7 @@ Vector3 Renderer::TraceRay_AABB(Ray& ray, Scene& scene, bool isReflect, int max_
 	
 	if (FindNearstIntersection_AABB(ray, scene, boxs)) // Miss
 	{
-		return HitNearst(ray, scene, true, max_depth, miss, illumination, rng);
+		return Vector3(1., 1., 1.);
 	}
 	else
 	{
@@ -385,7 +453,7 @@ Vector3 Renderer::TraceRay_BVH(Ray& ray, Scene& scene, bool isReflect, int max_d
 Vector3 Renderer::HitPointOriginal(const Ray& ray, Shape& NearstObj)
 {
 
-	Vector4 hit_point = Vector4(ray.Origin + ray.Distances[0] * ray.Direction, 1.);
+	Vector4 hit_point = Vector4(ray.Origin + ray.distance * ray.Direction, 1.);
 	//Vector3 hit_point = NearstObj->InverseTransform * hit_point_original;
 	Vector3 hit_point_original;
 	if (NearstObj.index() == 0) // is sphere
@@ -405,9 +473,9 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
 	Vector3 (Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 {
-	Shape& NearstObj = *ray.Objects[0];
+	Shape& NearstObj = *ray.object;
 	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
-	Vector3 hit_point = ray.Origin + ray.Distances[0] * ray.Direction;
+	Vector3 hit_point = ray.Origin + ray.distance * ray.Direction;
 
 	int material_id;
 	Vector3 normal_transformed;
@@ -442,8 +510,8 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 	Vector3 color = (this->*illumination)(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
 
 	ray.Origin = hit_point;
-	ray.Objects.clear();
-	ray.Distances.clear();
+	ray.object.reset();
+	ray.distance = 0.;
 	if (isReflect)
 	{
 		ParsedMaterial material = scene.materials[material_id];
@@ -530,9 +598,9 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
 	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
 {
-	Shape& NearstObj = *ray.Objects[0];
+	Shape& NearstObj = *ray.object;
 	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
-	Vector3 hit_point = ray.Origin + ray.Distances[0] * ray.Direction;
+	Vector3 hit_point = ray.Origin + ray.distance * ray.Direction;
 
 
 	int material_id;
@@ -568,8 +636,8 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 	Vector3 color = (this->*illumination)(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
 
 	ray.Origin = hit_point;
-	ray.Objects.clear();
-	ray.Distances.clear();
+	ray.object.reset();
+	ray.distance = 0.;
 	if (isReflect)
 	{
 		//if (NearstObj.index() == 0) // sphere
@@ -693,28 +761,13 @@ bool Renderer::FindNearstIntersection(Ray& ray, Scene& scene, Real t_min, Real t
 {
 	for (Shape& shape : scene.shapes)
 	{
-		ray.FindIntersection(shape, t_min, t_max);
-	}
-	if(ray.Distances.size() != 0)
-	{
-		int t_nearst = 0;
-		Real dis = ray.Distances[0];
-		for(int i = 0; i < ray.Distances.size(); i++)
+		if (ray.FindIntersection(shape, t_min, t_max))
 		{
-			if(ray.Distances[i] < dis)
-			{
-				dis = ray.Distances[i];
-				t_nearst = i;
-			}
+			t_max = ray.distance;
 		}
-		Shape nearest_shape = *ray.Objects[t_nearst];
-		ray.Distances.clear();
-		ray.Objects.clear();
-		ray.Distances.push_back(dis);
-		ray.Objects.push_back(std::make_shared<Shape>(nearest_shape));
-
-		return true;
 	}
+	if(ray.object) // hit
+		return true;
 	else
 		return false;
 }
@@ -728,7 +781,7 @@ bool Renderer::FindNearstIntersection_AABB(Ray& ray, Scene& scene, std::vector<A
 	{
 		if (box.isHit(ray, epsilon, 15000.))
 		{
-			ray.Objects[0] = std::make_shared<Shape>(scene.shapes[0]);
+			//ray.Objects[0] = std::make_shared<Shape>(scene.shapes[0]);
 			return true;
 		}
 	}
@@ -740,28 +793,11 @@ bool Renderer::FindNearstIntersection_BVH(Ray& ray, Scene& scene, BVH& node, Rea
 {
 	if (node.isHit(ray, t_min, t_max))
 	{
-		if (ray.Distances.size() != 0)
-		{
-			int t_nearst = 0;
-			Real dis = ray.Distances[0];
-			for (int i = 0; i < ray.Distances.size(); i++)
-			{
-				if (ray.Distances[i] < dis)
-				{
-					dis = ray.Distances[i];
-					t_nearst = i;
-				}
-			}
-			Shape nearest_shape = *ray.Objects[t_nearst];
-			ray.Distances.clear();
-			ray.Objects.clear();
-			ray.Distances.push_back(dis);
-			ray.Objects.push_back(std::make_shared<Shape>(nearest_shape));
+		if (ray.object)
 			return true;
-		}
 	}
-	else
-		return false;
+	
+	return false;
 }
 
 //Vector3 Renderer::Illumination(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene)

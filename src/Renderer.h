@@ -65,6 +65,7 @@ public:
 	Vector3 Illumination_hw_2_6(Ray& vis_ray, bool isPrimary_ray, Vector3 HitPoint,
 		Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars);
 
+
 	Vector3 Miss_hw_1_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
 	Vector3 Miss_hw_1_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
 	Vector3 Miss_hw_1_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth);

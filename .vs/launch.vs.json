@@ -9,8 +9,8 @@
       "name": "torrey.exe",
       "args": [
         "-hw",
-        "2_5",
-        "../scenes/party/party.xml"
+        "2_7",
+        "../scenes/teapot/teapot_constant.xml"
       ]
     }
   ]

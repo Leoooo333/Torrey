@@ -22,9 +22,9 @@ EnvironmentCamera::EnvironmentCamera(CameraParameters cameraParameters)
 	ReSetCamera(cameraParameters);
 }
 
-Ray AbstractCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng) { return Ray{}; }
+Ray AbstractCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time) { return Ray{}; }
 
-Ray PerspectiveCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng)
+Ray PerspectiveCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time)
 {
 	Vector2 coord = { (offset.x + (Real)x) / m_CameraParameters.width, (offset.y + (Real)y) / m_CameraParameters.height };
 	coord = coord * 2. - 1.;
@@ -56,11 +56,11 @@ Ray PerspectiveCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32
 	}
 	else
 		rayDirection = normalize(target);
-	Ray ray = { rayOrigin, rayDirection };
+	Ray ray = { rayOrigin, rayDirection , time};
 	return ray;
 }
 
-Ray EnvironmentCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng)
+Ray EnvironmentCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg32_state rng, Real time)
 {
 	Vector2 coord = { (offset.x + (Real)x) / m_CameraParameters.width, (offset.y + (Real)y) / m_CameraParameters.height };
 
@@ -79,7 +79,7 @@ Ray EnvironmentCamera::CaculateRayDirections(int x, int y, Vector2 offset, pcg32
 		std::cos(theta),
 		std::sin(theta) * std::sin(phi) };
 	Vector3 rayOrigin = m_CameraParameters.eye;
-	Ray ray = { rayOrigin, rayDirection };
+	Ray ray = { rayOrigin, rayDirection , time};
 	return ray;
 }
 void AbstractCamera::ReSetCamera(CameraParameters cameraParameters)
