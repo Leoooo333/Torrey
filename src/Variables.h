@@ -35,7 +35,7 @@ public:
 	int max_depth = 1;
 	bool isPrimary_ray = true;
 
-	int tile_size = 32;
+	int tile_size = 16;
 	int parallel_counts_bvh = 128;
 	int tile_size_bvh = 1;
 

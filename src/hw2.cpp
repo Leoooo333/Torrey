@@ -230,11 +230,11 @@ Image3 hw_2_5(const std::vector<std::string>& params) {
     vars.cameraParameters.center = scene.camera.lookat;
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
-    //vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    vars.cameraParameters.samples_per_pixel = 1;
+    vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+    //vars.cameraParameters.samples_per_pixel = 1;
 
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 512;
+    vars.parallel_counts_bvh = 1;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_2_5, &Renderer::Illumination_hw_2_5);
@@ -269,11 +269,11 @@ Image3 hw_2_7(const std::vector<std::string>& params) {
     vars.cameraParameters.center = scene.camera.lookat;
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
-    //vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    vars.cameraParameters.samples_per_pixel = 64;
+    vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
 
+    //vars.cameraParameters.samples_per_pixel = 64;
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 1;
+    vars.parallel_counts_bvh = 16;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_2_5, &Renderer::Illumination_hw_2_5);
@@ -308,14 +308,14 @@ Image3 hw_2_6(const std::vector<std::string>& params) {
     vars.cameraParameters.center = scene.camera.lookat;
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
-    //vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    vars.cameraParameters.samples_per_pixel = 1;
+    vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+    //vars.cameraParameters.samples_per_pixel = 1;
 
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 512;
+    vars.parallel_counts_bvh = 16;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
-    render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_2_5, &Renderer::Illumination_hw_2_5);
+    render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_1_9, &Renderer::Illumination_hw_2_5);
     img = render.GetImage();
 
     return *img;
@@ -348,12 +348,12 @@ Image3 hw_2_8(const std::vector<std::string>& params) {
     vars.cameraParameters.center = scene.camera.lookat;
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
-    //vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+    vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
 
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 1;
+    vars.parallel_counts_bvh = 16;
     vars.motion_blur_samples = 8;
-    vars.cameraParameters.samples_per_pixel = 1;
+    //vars.cameraParameters.samples_per_pixel = 1;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_1_9, &Renderer::Illumination_hw_2_5);
@@ -388,11 +388,11 @@ Image3 hw_2_9(const std::vector<std::string>& params) {
     vars.cameraParameters.center = scene.camera.lookat;
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
-    //vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    vars.cameraParameters.samples_per_pixel = 1;
+    vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+    //vars.cameraParameters.samples_per_pixel = 1;
 
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 512;
+    vars.parallel_counts_bvh = 16;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_2_5, &Renderer::Illumination_hw_2_5);

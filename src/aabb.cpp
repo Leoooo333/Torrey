@@ -96,3 +96,4 @@ AxisAlignedBoundingBox GetAabbByShape(Shape& shape, Real time)
     else // Triangle
         return GetAabbByShape(std::get<Triangle>(shape), time);
 }
+

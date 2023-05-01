@@ -4,27 +4,30 @@
 
 # My design 2_6
 
-### Glass
-There I made scene_5 ~ scene_8 for glass version for testing refraction.
+### Models from Poly Haven
+Here I use `Jacaranda Tree` , `rubber duck toy`, `stone fire pit` and `horse` from [Poly Haven](https://polyhaven.com/models).
 
-I put my designs in `hw1_scenes.h`
+### Layout using Blender
 
-## Leo signature
-My name is Leo, I design a signature using 3 different spirals with glass materials in:
-> hw1_scenes.h --> hw1_scene_9
+Layout these objects in Blender and export them as `.obj`.
 
-The content is made by Python code `Leo_generator.ipynb`
+### Adapt the scene within .XML
 
-#### Run this command and find it as hw_1_9.exr
+We then using a `.xml`file to modify the scene as we want.
+
+### Run this command and find it as hw_2_6.exr
+
 `
-  -hw 1_9 9
+  -hw 2_6 ../scenes/design/design_hw2.xml
 `
 
-
+That's a image describe a horse standing on a ball under a tree. There is also a transparent cute duck, who is watching at the tree. You can see the reflect lake.
 
 # Bonus 2_7
 ### Method 1: parallel BVH construction
 In the construction function, firstly seperate our shapes (objects) into `parallel_counts` of segments. And then use `parallel_for` to parallely construct the sub BVH and push back them in `bvh_list`.
+
+First, split the shapes list into `parallel_counts` pieces by random choose a axis.
 
 ```cpp
 BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, double time1, pcg32_state& rng, const int parallel_counts, const int tile_size_bvh)
@@ -35,18 +38,43 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, do
     int num_tiles = (parallel_counts + tile_size - 1) / tile_size;
     int shapes_size = src_shapes.size();
 
-    for(int i = 0; i < num_tiles; i++)
-    {
-        int begin = i * (shapes_size / num_tiles + 1);
-        int end = min((i + 1) * (shapes_size / num_tiles + 1) - 1, shapes_size - 1);
-        std::vector <std::shared_ptr<Shape>> shape_in_tile;
-        for(int j  = begin; j <= end; j++)
-        {
-            shape_in_tile.push_back(src_shapes[j]);
-        }
-        shapes_tiles_list.push_back(shape_in_tile);
-    }
+    auto shapes = src_shapes;
+    shapes_tiles_list.push_back(shapes);
 
+    for(int i = 0; i < log2(num_tiles); i++)
+    {
+        std::vector<std::vector<std::shared_ptr<Shape>>> shapes_tiles_list_cache;
+        for(int j = 0; j < shapes_tiles_list.size(); j++)
+        {
+            Real r = next_pcg32_real<Real>(rng) * 2;
+            auto comparator = (r < 2. / 3.) ? box_x_compare
+                : (2. / 3. <= r && r < 4. / 3.) ? box_y_compare
+                : box_z_compare;
+            std::vector <std::shared_ptr<Shape>>& shape_in_tile = shapes_tiles_list[j];
+            auto mid = 0 + shape_in_tile.size() / 2;
+            std::nth_element(shape_in_tile.begin(), shape_in_tile.begin() + mid, shape_in_tile.begin() + shape_in_tile.size(), comparator);
+
+            std::vector <std::shared_ptr<Shape>> left_sub, right_sub;
+            for(int k = 0; k < mid; k++)
+                left_sub.push_back(shape_in_tile[k]);
+            for (int k = mid; k < shape_in_tile.size(); k++)
+                right_sub.push_back(shape_in_tile[k]);
+
+            shapes_tiles_list_cache.push_back(left_sub);
+            shapes_tiles_list_cache.push_back(right_sub);
+        }
+        shapes_tiles_list.clear();
+        shapes_tiles_list = shapes_tiles_list_cache;
+    }
+```
+
+Then parallel each leaf nodes BVH's construction with in `parallel_for`.
+
+```cpp
+BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, double time1, pcg32_state& rng, const int parallel_counts, const int tile_size_bvh)
+{
+    ...
+    ...
     parallel_for([&](int64_t counts)
     {
         int i0 = counts * tile_size;
@@ -59,10 +87,6 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, do
 
     }, num_tiles);
 
-	for (int i = 0; i < num_tiles; i++)
-    {
-        bvh_list.push_back(std::make_shared<BVH>(BVH(shapes_tiles_list[i], 0, 0, rng)));
-    }
     BVH root = *build_bvh_by_list(bvh_list, rng);
     left = root.left;
     right = root.right;
@@ -70,18 +94,17 @@ BVH::BVH(const std::vector<std::shared_ptr<Shape>>& src_shapes, double time0, do
 }
 ```
 
- After all the sub nodes were finished, built the binary tree based on the nodes recursively.
+ After all the sub nodes were finished, built the binary tree based on the nodes recursively. There I bind every 2 nodes in the list and output a merged list(with half the length).
 
 ```cpp
-std::shared_ptr<BVH>BVH::build_bvh_by_list(std::vector<std::shared_ptr<BVH>>& list, pcg32_state& rng)
+std::shared_ptr<BVH> BVH::build_bvh_by_list(std::vector<std::shared_ptr<BVH>>& list, pcg32_state& rng)
 {
-    std::shared_ptr<BVH> left, right;
     std::vector<std::shared_ptr<BVH>> list_half;
     if (list.size() <= 2)
         return std::make_shared<BVH>(BVH(list[0], list[1]));
-    for(int i  = 0; i < list.size() / 2; i++)
+    for(int i  = 0; i < list.size()-1; i+=2)
     {
-        list_half.push_back(std::make_shared<BVH>(BVH(list[i], list[list.size() - 1 - i])));
+        list_half.push_back(std::make_shared<BVH>(BVH(list[i], list[i + 1])));
     }
     return build_bvh_by_list(list_half, rng);
 };
@@ -91,41 +114,56 @@ std::shared_ptr<BVH>BVH::build_bvh_by_list(std::vector<std::shared_ptr<BVH>>& li
 
 Since we will sort the objects recursively, the exactly order within the sub node doesn't matters. ` std::nth_element` here could fix the middle object, and separate the smaller half to the left, the bigger half to the right.
 
-### Comparison (2 threads only, -spp = 1)
-
-Based on the teapot object, I did some experiments. See the table below: Here we get **2.35x** speedup (6.7 s / 2.85 s)
-
-| *teapot*        | Parallel BVH construction                | w/o parallel      |
-| --------------- | ---------------------------------------- | ----------------- |
-| **nth_element** | 1.6 (construct) + 1.25 (render) = 2.85 s | 4.6 + 1.1 = 5.7 s |
-| **sort**        | 1.6 (construct) + 1.74 (render) = 3.34 s | 5.5 + 1.2 = 6.7 s |
-
-See the table below for bunny: Here we get **15x** speedup (20.2 s / 5*60 s)
-
-
-| *bunny*         | Parallel BVH construction                | w/o parallel      |
-| --------------- | ---------------------------------------- | ----------------- |
-| **nth_element** | 13.8 (construct) + 6.4 (render) = 20.2 s | > 5 mins, unknown |
-| **sort**        | 16.6 (construct) + 7.5 (render) = 24.1 s | > 5 mins, unknown |
-
-#### Best performance
-
-Let's make `parallel_counts = 512` and no threads limits, based on bunny. And we will get the best performance in 10s, which is almost **30x** faster than original one. 
-
-```
-Scene parsing done. Took 0.22027 seconds.
-Build BVH Time: 3.74021
- 100.00 Percent Done (80 / 80)Total Time:       9.93671
+```    cpp
+	//std::sort(shapes.begin() + start, shapes.begin() + end, comparator);
+    auto mid = start + object_span / 2;
+    std::nth_element(shapes.begin() + start, shapes.begin() + mid, shapes.begin() + end, comparator);
 ```
 
-And the best performance for ***party*** is 1 min.
+### Comparison (w/o threads limit)
+
+Based on the ''party'', I did some experiments. See the table below: Here we get **5.04x** speedup (72.6 s / 14.4 s)
+
+| *party*         | Parallel BVH construction                  | w/o parallel         |
+| --------------- | ------------------------------------------ | -------------------- |
+| **nth_element** | 5.5 (construct) + 18.2 (render) = 23.7 s 🚀 | 15.3 + 21.5 = 36.8 s |
+| **sort**        | 7.6 (construct) + 17.7 (render) = 25.3 s   | 52.6 + 20 = 72.6 s 🐢 |
+
+And when I choose `largest extent axis` here, I get the best performance within **14.4 s**  🚀 🚀 🚀.
+
+```cpp
+ Scene parsing done. Took 1.10206 seconds.
+Build BVH Time: 6.19123
+ 100.00 Percent Done (1200 / 1200)Total Time:   14.4212
+```
+
+### Comparison (2 threads only)
+
+Based on the ''party''(2 threads only), See the table below: Here we get **3.68x** speedup (130.3 s / 35.4 s)
+
+| *party*         | Parallel BVH construction                  | w/o parallel          |
+| --------------- | ------------------------------------------ | --------------------- |
+| **nth_element** | 9.8 (construct) + 46.1 (render) = 55.9 s 🚀 | 14.5 + 65.7 = 80.2 s  |
+| **sort**        | 19.2 (construct) + 56.2 (render) = 75.4 s  | 51.0 + 79.3= 130.3 s🐢 |
+
+And when I choose `largest extent axis` here, I get the best performance within **35.4 s**  🚀 🚀 🚀.
+
+```cpp
+Scene parsing done. Took 1.0286 seconds.
+Build BVH Time: 10.5056
+ 100.00 Percent Done (1200 / 1200)Total Time:  35.4294
+```
+
+
 
 ### Run
 
 Run this command and render the lovely bunny as hw_2_7.exr with in only a couple of seconds. 
 `
-  -hw 2_7 ../scenes/bunny/bunny.xml
+  -hw 2_7 ../scenes/party/party.xml
 `
+
+Make `    vars.parallel_counts_bvh = 1;` in `hw2_7() hw2.cpp` to run without parallel. My default is `vars.parallel_counts_bvh = 16`.
 
 
 
