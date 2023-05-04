@@ -4,7 +4,7 @@
       "name": "Debug",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "inheritEnvironments": [ "clang_cl_x64" ],
+      "inheritEnvironments": [ "msvc_x64" ],
       "buildRoot": "${projectDir}\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",

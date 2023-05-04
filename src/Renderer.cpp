@@ -7,6 +7,7 @@
 #include "timer.h"
 #include "transform.h"
 #include "progressreporter.h"
+#include "3rdparty/stb_image.h"
 
 #define TILE_SIZE 64
 void Renderer::Render(CameraUnion& camera, Variables& vars, Scene& scene,
@@ -229,7 +230,7 @@ void Renderer::Render_BVH(CameraUnion& camera, Variables& vars, Scene& scene,
 	tick(build_time);
 
 
-	if(m_Vars.parallel_counts_bvh > 1)
+	if(m_Vars.parallel_counts_bvh > 1 && src_shapes.size() > 512)
 	{
 		m_BVH = BVH(src_shapes, 0, 0, rng_bvh, m_Vars.parallel_counts_bvh, m_Vars.tile_size_bvh);
 	}
@@ -514,10 +515,16 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 	ray.distance = 0.;
 	if (isReflect)
 	{
-		ParsedMaterial material = scene.materials[material_id];
-		ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-		Vector3 surface_color = std::get<Vector3>(parsed_color);
-
+		Material material = scene.materials[material_id];
+		Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+		Vector3 surface_color;
+		if (m_color.index() == 0) // RGB color
+			surface_color = std::get<Vector3>(m_color);
+		else // Texture
+		{
+			Texture& texture = std::get<Texture>(m_color);
+			surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+		}
 		//Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
 		//Real noize_phi = next_pcg32_real<Real>(rng) * 2 * c_PI;
 		//Vector3 sample_in_unit_sphere{ std::sin(noize_theta) * std::cos(noize_phi),
@@ -543,7 +550,7 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 
 		else if (material.index() == 2) // plastic
 		{
-			ParsedPlastic material_plastic = std::get<ParsedPlastic>(material);
+			Plastic& material_plastic = std::get<Plastic>(material);
 			Real index_of_refraction = material_plastic.eta;
 
 			if (!isFrontFace(ray, normal_transformed))
@@ -645,10 +652,16 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 		//else // triangle
 		//	material_id = std::get<Triangle>(NearstObj).mesh->material_id;
 
-		ParsedMaterial material = scene.materials[material_id];
-		ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-		Vector3 surface_color = std::get<Vector3>(parsed_color);
-
+		Material material = scene.materials[material_id];
+		Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+		Vector3 surface_color;
+		if (m_color.index() == 0) // RGB color
+			surface_color = std::get<Vector3>(m_color);
+		else // Texture
+		{
+			Texture& texture = std::get<Texture>(m_color);
+			surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+		}
 		//Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
 		//Real noize_phi = next_pcg32_real<Real>(rng) * 2 * c_PI;
 		//Vector3 sample_in_unit_sphere{ std::sin(noize_theta) * std::cos(noize_phi),
@@ -674,7 +687,7 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 
 		else if (material.index() == 2) // plastic
 		{
-			ParsedPlastic material_plastic = std::get<ParsedPlastic>(material);
+			Plastic& material_plastic = std::get<Plastic>(material);
 			Real index_of_refraction = material_plastic.eta;
 
 			if (!isFrontFace(ray, normal_transformed))
@@ -725,30 +738,6 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 	//}
 }
 
-
-//Vector3 Renderer::HitNearst_AABB(Ray& ray, Scene& scene, bool isReflect, int max_depth,
-//	Vector3(Renderer::*miss)(const Ray&, Scene&, Variables&, int),
-//	Vector3(Renderer::*illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&), pcg32_state& rng)
-//{
-//	Shape& NearstObj = scene.shapes[ray.Objects];
-//	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
-//	Vector3 hit_point = ray.Origin + ray.Distances * ray.Direction;
-//
-//	AxisAlignedBoundingBox aabb;
-//	Vector3 normal_transformed;
-//	if (NearstObj.index() == 0) // is sphere
-//	{
-//		ParsedSphere& sphere = std::get<ParsedSphere>(NearstObj);
-//		aabb = GetAabbByShape(sphere);
-//	}
-//	else //is triangle
-//	{
-//		ParsedTriangleMesh& triangle = std::get<ParsedTriangleMesh>(NearstObj);
-//		aabb = GetAabbByShape(triangle, ray.NearstIndexinMesh);
-//	}
-//
-//	Vector3 color = illumination(ray, isReflect, hit_point, normal_transformed, NearstObj, scene, m_Vars);
-//}
 Vector3 Renderer::Miss(const Ray& ray, Scene& scene, int max_depth)
 {
 	return Vector3(0., 0., 0.);
@@ -914,9 +903,9 @@ Vector3 Renderer::Illumination_hw_1_4(Ray& ray, bool isPrimary_ray, Vector3 HitP
 		material_id = std::get<ParsedSphere>(NearstObj).material_id;
 	else // triangle
 		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-	ParsedMaterial material = scene.materials[material_id];
-	ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-	Vector3 color = std::get<Vector3>(parsed_color);
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 color = std::get<Vector3>(m_color);
 	return color;
 }
 
@@ -931,10 +920,16 @@ Vector3 Renderer::Illumination_hw_1_5(Ray& ray, bool isPrimary_ray, Vector3 HitP
 		material_id = std::get<ParsedSphere>(NearstObj).material_id;
 	else // triangle
 		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-	ParsedMaterial material = scene.materials[material_id];
-	ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-	Vector3 surface_color = std::get<Vector3>(parsed_color);
-
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if (m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
 	Vector3 light_direction = Vector3(0., 0., 0.);
 
 	Vector3 color{0., 0., 0.};
@@ -1012,10 +1007,16 @@ Vector3 Renderer::Illumination_hw_1_7(Ray& ray, bool isPrimary_ray, Vector3 HitP
 		material_id = std::get<ParsedSphere>(NearstObj).material_id;
 	else // triangle
 		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-	ParsedMaterial material = scene.materials[material_id];
-	ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-	Vector3 surface_color = std::get<Vector3>(parsed_color);
-
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if (m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
 	Vector3 light_direction = Vector3(0., 0., 0.);
 
 	Vector3 color{ 0., 0., 0. };
@@ -1105,9 +1106,16 @@ Vector3 Renderer::Illumination_hw_1_10(Ray& ray, bool isPrimary_ray, Vector3 Hit
 		material_id = std::get<ParsedSphere>(NearstObj).material_id;
 	else // triangle
 		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-	ParsedMaterial material = scene.materials[material_id];
-	ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-	Vector3 surface_color = std::get<Vector3>(parsed_color);
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if (m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
 
 	Vector3 light_direction = Vector3(0., 0., 0.);
 
@@ -1274,10 +1282,107 @@ Vector3 Renderer::Illumination_hw_2_5(Ray& ray, bool isPrimary_ray, Vector3 HitP
 		material_id = std::get<ParsedSphere>(NearstObj).material_id;
 	else // triangle
 		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-	ParsedMaterial material = scene.materials[material_id];
-	ParsedColor parsed_color = std::visit([=](auto& m) {return m.reflectance; }, material);
-	Vector3 surface_color = std::get<Vector3>(parsed_color);
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if (m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
 
+	Vector3 light_direction = Vector3(0., 0., 0.);
+
+	Vector3 color{ 0., 0., 0. };
+	//parallel_for([&](int counts)
+	//	{
+
+	//	}, (int64_t)10);
+	for (ParsedLight light : scene.lights)
+	{
+		Real d = 0;
+		Real visibility = 1.;
+		Vector3 position;
+		Vector3 intensity;
+
+		if (light.index() == 0) // is PointLight
+		{
+			ParsedPointLight point_light = std::get<ParsedPointLight>(light);
+			position = point_light.position;
+			intensity = point_light.intensity;
+			light_direction = HitPoint - point_light.position;
+			d = length(light_direction);
+		}
+		else {} // is AreaLight
+
+		Ray shadow_ray = { HitPoint, -normalize(light_direction) };
+		if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, d))
+			visibility = 1.;
+		else
+			visibility = 0;
+
+		light_direction = normalize(light_direction);
+
+		//For rainbow color
+		//light->light_color = vec4(sin((ray.Origin.x + 10.) / (12.7 / 1.5)), sin((ray.Origin.z + 50.) / (31.8 / 1.5)), cos((ray.Origin.x + 10.) / (12.7 / 1.5)), 1.);
+
+		Vector3 diffuse;
+		Vector3 normal = normalize(Normal);
+		if (dot(ray.Direction, normal) > 0)
+		{
+			normal = -normal;
+		}
+		diffuse = intensity * surface_color *
+			max(dot(-light_direction, normal), 0.);
+
+		Vector3 direction = normalize(ray.Direction);
+
+		Vector3 halfvec = normalize(-direction - light_direction);
+		Vector3 specular = intensity * surface_color *
+			pow(max(dot(halfvec, normalize(normal)), 0.), 1000000);
+
+		Vector3 transmission{ 0., 0., 0. };
+
+		diffuse = diffuse / (vars.attenuation_const + vars.attenuation_linear * d + vars.attenuation_quadratic * d * d);
+		specular = specular / (vars.attenuation_const + vars.attenuation_linear * d + vars.attenuation_quadratic * d * d);
+		if (material.index() == 0)// diffuse
+			color += diffuse * visibility * c_INVPI;
+		else if (material.index() == 1) // mirror
+			//color += specular * visibility * c_INVPI;
+			;
+		else if (material.index() == 2) // plastic
+			color += transmission * visibility * c_INVPI;
+	}
+
+	//color += ambient + emission;
+
+	return color;
+}
+
+Vector3 Renderer::Miss_hw_3_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+{
+	return scene.background_color;
+}
+
+Vector3 Renderer::Illumination_hw_3_1(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+{
+	int material_id;
+	if (NearstObj.index() == 0) // sphere
+		material_id = std::get<ParsedSphere>(NearstObj).material_id;
+	else // triangle
+		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if(m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
 	Vector3 light_direction = Vector3(0., 0., 0.);
 
 	Vector3 color{ 0., 0., 0. };

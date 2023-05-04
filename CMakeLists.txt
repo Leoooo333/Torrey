@@ -50,6 +50,7 @@ set(SRCS src/3rdparty/miniz.h
          src/Variables.h
          src/aabb.h
          src/BVH.h
+         src/Material.h
          src/compute_normals.cpp
          src/hw1.cpp
          src/hw2.cpp
@@ -68,7 +69,8 @@ set(SRCS src/3rdparty/miniz.h
          src/Shape.cpp
          src/Renderer.cpp
          src/aabb.cpp
-         src/BVH.cpp)
+         src/BVH.cpp
+         src/Material.cpp)
 
 
 add_library(torrey_lib STATIC ${SRCS})

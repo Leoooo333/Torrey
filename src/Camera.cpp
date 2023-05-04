@@ -50,9 +50,9 @@ Ray PerspectiveCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg3
 		//Vector3 a = target;
 		//a += random_radius * random_direction.x * u +  random_radius * random_direction.y * v;
 		//rayDirection = normalize(a - rayOrigin);
-		rayOrigin += random_radius * random_direction.x * u +  random_radius * random_direction.y * v;
-		
-		rayDirection = normalize(target - rayOrigin);
+		Vector3 offset_ori = random_radius * random_direction.x * u +  random_radius * random_direction.y * v;
+		rayOrigin += offset_ori;
+		rayDirection = normalize(target - offset_ori);
 	}
 	else
 		rayDirection = normalize(target);

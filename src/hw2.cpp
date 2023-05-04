@@ -162,7 +162,6 @@ Image3 hw_2_3(const std::vector<std::string>& params) {
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
     vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render(cam, vars, s, &Renderer::Miss_hw_2_3, &Renderer::Illumination_hw_2_3);
