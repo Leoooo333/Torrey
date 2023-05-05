@@ -9,8 +9,8 @@
       "name": "torrey.exe",
       "args": [
         "-hw",
-        "3_1",
-        "../scenes/sponza/sponza.xml"
+        "3_3",
+        "../scenes/bunny/bunny_plastic_floor_view_low.xml"
       ]
     }
   ]

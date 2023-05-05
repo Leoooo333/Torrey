@@ -43,6 +43,7 @@ public:
 	Real t_min = epsilon;
 	Real t_max = (1. - epsilon) * 15000.;
 	int motion_blur_samples = 0;
+	bool shading_normal = false;
 
 	CameraType cameraType = PERSPECTIVE_CAM;
 };

@@ -91,10 +91,17 @@ struct BlinnPhongMicrofacet {
     Real exponent; // alpha
 };
 
+
+struct Glass {
+    Real eta; // index of refraction
+    Color reflectance;
+};
+
 using Material = std::variant<Diffuse,
     Mirror,
     Plastic,
     Phong,
     BlinnPhong,
-    BlinnPhongMicrofacet>;
+    BlinnPhongMicrofacet,
+    Glass>;
 

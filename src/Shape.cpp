@@ -19,6 +19,28 @@ Vector4 GetNormalByHitPoint(Vector3 hitpoint, Triangle& triangle)
 	return Vector4(normal, 0.);
 }
 
+Vector4 GetNormalByHitPoint_Smooth(Vector3 hitpoint, Triangle& triangle)
+{
+	Vector3 p1 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][0]];
+	Vector3 p2 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][1]];
+	Vector3 p3 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][2]];
+	Vector3 orig = Vector3(0., 0., 0.);
+	Vector3 direct = normalize(hitpoint - orig);
+	Real b1 = dot(cross(direct, p3 - p1), orig - p1) /
+		dot(cross(direct, p3 - p1), p2 - p1);
+
+	Real b2 = dot(cross(orig - p1, p2 - p1), direct) /
+		dot(cross(direct, p3 - p1), p2 - p1);
+
+	Vector3 barycentric = Vector3(1 - b1 - b2, b1, b2);
+
+	Vector3 normal_1 = triangle.mesh->normals[triangle.mesh->indices[triangle.index][0]];
+	Vector3 normal_2 = triangle.mesh->normals[triangle.mesh->indices[triangle.index][1]];
+	Vector3 normal_3 = triangle.mesh->normals[triangle.mesh->indices[triangle.index][2]];
+	Vector3 normal_p = normalize(barycentric.x * normal_1 + barycentric.y * normal_2 + barycentric.z * normal_3);
+	return Vector4(normal_p, 0.);
+}
+
 
 Color ParsedColorToColor(ParsedColor& parsed_color)
 {
@@ -87,6 +109,12 @@ Scene ParsedSceneToScene(ParsedScene& parsed_scene)
 			ParsedBlinnPhongMicrofacet& p_blphomic = std::get<ParsedBlinnPhongMicrofacet>(material);
 			BlinnPhongMicrofacet m_blphomic = { ParsedColorToColor(p_blphomic.reflectance),  p_blphomic.exponent };
 			materials.push_back(Material{ m_blphomic });
+		}
+		else if (material.index() == 6) // Glass
+		{
+			ParsedGlass& p_glass = std::get<ParsedGlass>(material);
+			Glass m_glass = { p_glass.eta, ParsedColorToColor(p_glass.reflectance) };
+			materials.push_back(Material{ m_glass });
 		}
 	}
 	return Scene{ parsed_scene.camera,

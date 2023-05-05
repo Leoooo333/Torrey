@@ -548,14 +548,14 @@ Vector3 Renderer::HitNearst(Ray& ray, Scene& scene, bool isReflect, int max_dept
 			//ray.Direction = normalize(ray.Direction);
 		}
 
-		else if (material.index() == 2) // plastic
+		else if (material.index() == 6) // glass
 		{
-			Plastic& material_plastic = std::get<Plastic>(material);
-			Real index_of_refraction = material_plastic.eta;
+			Glass& material_glass = std::get<Glass>(material);
+			Real index_of_refraction = material_glass.eta;
 
 			if (!isFrontFace(ray, normal_transformed))
 			{
-				index_of_refraction = 1. / material_plastic.eta;
+				index_of_refraction = 1. / material_glass.eta;
 				normal_transformed = -normal_transformed;
 			}
 
@@ -626,14 +626,16 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 	else //is triangle
 	{
 		Triangle& triangle = std::get<Triangle>(NearstObj);
-		//if(triangle.mesh->normals.size() > triangle.index) // has cached normal
-		//{
-		//	normal_transformed = triangle.mesh->normals[triangle.index];
-		//}
-		//else
-		//{
-		Vector4 normal_transformed_4 = GetNormalByHitPoint(hit_point_original, triangle);
-		normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+		if(triangle.mesh->normals.size() > 0 && m_Vars.shading_normal) // has cached normal
+		{
+			Vector4 normal_transformed_4 = GetNormalByHitPoint_Smooth(hit_point_original, triangle);
+			normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+		}
+		else
+		{
+			Vector4 normal_transformed_4 = GetNormalByHitPoint(hit_point_original, triangle);
+			normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+		}
 
 		material_id = triangle.mesh->material_id;
 	}
@@ -651,7 +653,10 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 		//	material_id = std::get<ParsedSphere>(NearstObj).material_id;
 		//else // triangle
 		//	material_id = std::get<Triangle>(NearstObj).mesh->material_id;
-
+		if (dot(ray.Direction, normal_transformed) > 0)
+		{
+			normal_transformed = -normal_transformed;
+		}
 		Material material = scene.materials[material_id];
 		Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
 		Vector3 surface_color;
@@ -683,16 +688,31 @@ Vector3 Renderer::HitNearst_BVH(Ray& ray, Scene& scene, bool isReflect, int max_
 			// Fuzzed
 			//ray.Direction += 0.1*sample_in_unit_sphere;
 			//ray.Direction = normalize(ray.Direction);
-		}
+			surface_color = surface_color + (Vector3(1., 1., 1.) - surface_color) * 
+				pow(1. - dot(normal_transformed,ray.Direction), 5);
 
+		}
 		else if (material.index() == 2) // plastic
 		{
+			ray.Direction = reflect(ray.Direction, normal_transformed);
 			Plastic& material_plastic = std::get<Plastic>(material);
 			Real index_of_refraction = material_plastic.eta;
+			Real cos_theta = max(dot(ray.Direction, normal_transformed), 0.);
+			//std::cout << "cos = " << cos_theta << std::endl;
+			Real F_0 = pow((index_of_refraction - 1.) / (index_of_refraction + 1.), 2.);
+			Real F = F_0 + (1 - F_0) * pow(1 - cos_theta, 5);
+			surface_color = Vector3(F, F, F);
+			//surface_color = surface_color + (1 - F_0) * pow(1 - cos_theta, 5);
+
+		}
+		else if (material.index() == 6) // glass
+		{
+			Glass& material_glass = std::get<Glass>(material);
+			Real index_of_refraction = material_glass.eta;
 
 			if (!isFrontFace(ray, normal_transformed))
 			{
-				index_of_refraction = 1. / material_plastic.eta;
+				index_of_refraction = 1. / material_glass.eta;
 				normal_transformed = -normal_transformed;
 			}
 
@@ -1176,7 +1196,7 @@ Vector3 Renderer::Illumination_hw_1_10(Ray& ray, bool isPrimary_ray, Vector3 Hit
 		else if (material.index() == 1) // mirror
 			//color += specular * visibility * c_INVPI;
 			;
-		else if (material.index() == 2) // plastic
+		else if (material.index() == 6) // glass
 			color += transmission * visibility * c_INVPI;
 	}
 
@@ -1352,7 +1372,7 @@ Vector3 Renderer::Illumination_hw_2_5(Ray& ray, bool isPrimary_ray, Vector3 HitP
 		else if (material.index() == 1) // mirror
 			//color += specular * visibility * c_INVPI;
 			;
-		else if (material.index() == 2) // plastic
+		else if (material.index() == 6) // glass
 			color += transmission * visibility * c_INVPI;
 	}
 
@@ -1442,7 +1462,106 @@ Vector3 Renderer::Illumination_hw_3_1(Ray& ray, bool isPrimary_ray, Vector3 HitP
 		else if (material.index() == 1) // mirror
 			//color += specular * visibility * c_INVPI;
 			;
-		else if (material.index() == 2) // plastic
+		else if (material.index() == 6) // glass
+			color += transmission * visibility * c_INVPI;
+	}
+
+	//color += ambient + emission;
+
+	return color;
+}
+
+Vector3 Renderer::Miss_hw_3_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+{
+	return scene.background_color;
+}
+
+Vector3 Renderer::Illumination_hw_3_3(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars)
+{
+	int material_id;
+	if (NearstObj.index() == 0) // sphere
+		material_id = std::get<ParsedSphere>(NearstObj).material_id;
+	else // triangle
+		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if (m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
+	Vector3 light_direction = Vector3(0., 0., 0.);
+
+	Vector3 color{ 0., 0., 0. };
+	//parallel_for([&](int counts)
+	//	{
+
+	//	}, (int64_t)10);
+	for (ParsedLight light : scene.lights)
+	{
+		Real d = 0;
+		Real visibility = 1.;
+		Vector3 position;
+		Vector3 intensity;
+
+		if (light.index() == 0) // is PointLight
+		{
+			ParsedPointLight point_light = std::get<ParsedPointLight>(light);
+			position = point_light.position;
+			intensity = point_light.intensity;
+			light_direction = HitPoint - point_light.position;
+			d = length(light_direction);
+		}
+		else {} // is AreaLight
+
+		Ray shadow_ray = { HitPoint, -normalize(light_direction) };
+		if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, d))
+			visibility = 1.;
+		else
+			visibility = 0;
+
+		light_direction = normalize(light_direction);
+
+		//For rainbow color
+		//light->light_color = vec4(sin((ray.Origin.x + 10.) / (12.7 / 1.5)), sin((ray.Origin.z + 50.) / (31.8 / 1.5)), cos((ray.Origin.x + 10.) / (12.7 / 1.5)), 1.);
+
+		Vector3 diffuse;
+		Vector3 normal = normalize(Normal);
+		if (dot(ray.Direction, normal) > 0)
+		{
+			normal = -normal;
+		}
+		diffuse = intensity * surface_color *
+			max(dot(-light_direction, normal), 0.);
+
+		Vector3 direction = normalize(ray.Direction);
+
+		Vector3 halfvec = normalize(-direction - light_direction);
+		Vector3 specular = intensity * surface_color *
+			pow(max(dot(halfvec, normalize(normal)), 0.), 1000000);
+
+		Vector3 transmission{ 0., 0., 0. };
+
+		diffuse = diffuse / (vars.attenuation_const + vars.attenuation_linear * d + vars.attenuation_quadratic * d * d);
+		specular = specular / (vars.attenuation_const + vars.attenuation_linear * d + vars.attenuation_quadratic * d * d);
+		if (material.index() == 0)// diffuse
+			color += diffuse * visibility * c_INVPI;
+		else if (material.index() == 1) // mirror
+			//color += specular * visibility * c_INVPI;	
+			;
+		else if(material.index() == 2) // plastic
+		{
+			Plastic & material_plastic = std::get<Plastic>(material);
+			Real index_of_refraction = material_plastic.eta;
+			Real cos_theta = dot(reflect(ray.Direction, normal), normal);
+			Real F_0 = pow((index_of_refraction - 1.) / (index_of_refraction + 1.), 2.);
+			Real F = F_0 + (1 - F_0) * pow(1 - cos_theta, 5);
+			color += (1. - F) * diffuse * visibility * c_INVPI;
+		}
+		else if (material.index() == 6) // glass
 			color += transmission * visibility * c_INVPI;
 	}
 

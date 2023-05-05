@@ -63,6 +63,8 @@ Color ParsedColorToColor(ParsedColor& parsed_color);
 Scene ParsedSceneToScene(ParsedScene& parsed_scene);
 Vector4 GetNormalByHitPoint(Vector3 hitpoint, ParsedSphere& sphere);
 Vector4 GetNormalByHitPoint(Vector3 hitpoint, Triangle& triangle);
+Vector4 GetNormalByHitPoint_Smooth(Vector3 hitpoint, Triangle& triangle);
+
 
 struct Ray
 {
@@ -109,10 +111,7 @@ struct Ray
 
 				u_coor = phi / (2 * c_PI);
 				v_coor = theta / c_PI;
-				if (isnan(u_coor))
-				{
-					std::cerr << "u = " << u_coor << ")   .\n";
-				}
+
 				return true;
 			}
 			else
@@ -161,32 +160,17 @@ struct Ray
 				object = std::make_shared<Shape>(Shape{ triangle });
 				distance = nearest_t;
 
-				Vector3 s[2];
-				for (int i = 2; i--; )
-				{
-					s[i][0] = p3[i] - p1[i];
-					s[i][1] = p2[i] - p1[i];
-					s[i][2] = p1[i] - p[i];
-				}
-				Vector3 b = cross(s[0], s[1]);
-				Vector3 barycentric;
-				if(b.z == 0.)
-				{
-					Vector3 ss[2];
-					for (int i = 2; i--; )
-					{
-						ss[i][0] = p3[i+1] - p1[i+1];
-						ss[i][1] = p2[i+1] - p1[i+1];
-						ss[i][2] = p1[i+1] - p[i+1];
-					}
-					Vector3 bb = cross(ss[0], ss[1]);
-					barycentric = Vector3(1. - (bb.x + bb.y) / bb.z, bb.y / bb.z, bb.x / bb.z);
-				}
-				else
-					barycentric = Vector3(1. - (b.x + b.y) / b.z, b.y / b.z, b.x / b.z);
+				Real b1 = dot(cross(direct, p3 - p1), orig - p1) /
+					dot(cross(direct, p3 - p1), p2 - p1);
+
+				Real b2 = dot(cross(orig - p1, p2 - p1), direct) /
+					dot(cross(direct, p3 - p1), p2 - p1);
+
+				Vector3 barycentric = Vector3(1 - b1 - b2, b1, b2);
 
 				if(triangle.mesh->uvs.size() != 0)
 				{
+					//std::cout << barycentric.x << "," << barycentric.y << "," << barycentric.z << std::endl;
 					Vector2 uv_coor = 
 					{ dot(Vector3(triangle.mesh->uvs[triangle.mesh->indices[triangle.index][0]].x,
 						triangle.mesh->uvs[triangle.mesh->indices[triangle.index][1]].x,
@@ -204,9 +188,9 @@ struct Ray
 					u_coor = barycentric.y;
 					v_coor = barycentric.z;
 				}
-				if (isnan(u_coor))
+				if (isnan(u_coor) || isnan(v_coor))
 				{
-					std::cerr << "u = " << u_coor << ")   .\n";
+					std::cerr << "u = " << u_coor << ",v = " << v_coor << ")   .\n";
 				}
 				return true;
 			}
