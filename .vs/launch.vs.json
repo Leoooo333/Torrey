@@ -10,7 +10,7 @@
       "args": [
         "-hw",
         "3_3",
-        "../scenes/bunny/bunny_plastic_floor_view_low.xml"
+        "../scenes/hw1_spheres/scene1.xml"
       ]
     }
   ]
