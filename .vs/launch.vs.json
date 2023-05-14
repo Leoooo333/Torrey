@@ -9,8 +9,8 @@
       "name": "torrey.exe",
       "args": [
         "-hw",
-        "3_3",
-        "../scenes/hw1_spheres/scene1.xml"
+        "3_11",
+        "../scenes/head/head_spherical_light.xml"
       ]
     }
   ]

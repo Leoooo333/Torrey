@@ -24,7 +24,7 @@ Vector4 GetNormalByHitPoint_Smooth(Vector3 hitpoint, Triangle& triangle)
 	Vector3 p1 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][0]];
 	Vector3 p2 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][1]];
 	Vector3 p3 = triangle.mesh->positions[triangle.mesh->indices[triangle.index][2]];
-	Vector3 orig = Vector3(0., 0., 0.);
+	Vector3 orig = Vector3(0.1, 0.1, 0.1);
 	Vector3 direct = normalize(hitpoint - orig);
 	Real b1 = dot(cross(direct, p3 - p1), orig - p1) /
 		dot(cross(direct, p3 - p1), p2 - p1);

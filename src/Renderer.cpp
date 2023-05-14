@@ -1650,6 +1650,7 @@ Vector3 Renderer::Illumination_hw_3_4(Ray& ray, bool isPrimary_ray, Vector3 HitP
 				Real theta = acos(1. - 2. * u1);
 				Real phi = 2. * c_PI * u2;
 				Vector3 offset = { sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
+				offset *= light_sphere.radius;
 				Vector3 hit_p = light_sphere.position + offset;
 				position.push_back(hit_p);
 				light_direction = HitPoint - hit_p;
@@ -1659,10 +1660,16 @@ Vector3 Renderer::Illumination_hw_3_4(Ray& ray, bool isPrimary_ray, Vector3 HitP
 				if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 					visibility.push_back(1.);
 				else
-					visibility.push_back(0);
+				{
+					int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+					if(shadow_hit_area_light_id == light_sphere.area_light_id)
+						visibility.push_back(1.);
+					else
+						visibility.push_back(0);
+				}
 
 				light_direction = normalize(light_direction);
-				Vector4 normal_original = GetNormalByHitPoint(hit_p, light_sphere);
+				Vector4 normal_original = GetNormalByHitPoint(offset, light_sphere);
 				Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 					translate(Vector3(light_sphere.position.x, light_sphere.position.y, light_sphere.position.z)))) * normal_original);
 				Vector3 normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
@@ -1696,7 +1703,13 @@ Vector3 Renderer::Illumination_hw_3_4(Ray& ray, bool isPrimary_ray, Vector3 HitP
 					if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 						visibility.push_back(1.);
 					else
-						visibility.push_back(0);
+					{
+						int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+						if (shadow_hit_area_light_id == light_mesh.area_light_id)
+							visibility.push_back(1.);
+						else
+							visibility.push_back(0);
+					}
 
 					light_direction = normalize(light_direction);
 					Vector4 normal_original = GetNormalByHitPoint(hit_p, light_triangle);
@@ -1826,6 +1839,7 @@ Vector3 Renderer::Illumination_hw_3_7(Ray& ray, bool isPrimary_ray, Vector3 HitP
 						Real theta = acos(1. - 2. * u1);
 						Real phi = 2. * c_PI * u2;
 						Vector3 offset = { sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
+						offset *= light_sphere.radius;
 						Vector3 hit_p = light_sphere.position + offset;
 						position.push_back(hit_p);
 						light_direction = HitPoint - hit_p;
@@ -1835,10 +1849,16 @@ Vector3 Renderer::Illumination_hw_3_7(Ray& ray, bool isPrimary_ray, Vector3 HitP
 						if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 							visibility.push_back(1.);
 						else
-							visibility.push_back(0);
+						{
+							int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+							if (shadow_hit_area_light_id == light_sphere.area_light_id)
+								visibility.push_back(1.);
+							else
+								visibility.push_back(0);
+						}
 
 						light_direction = normalize(light_direction);
-						Vector4 normal_original = GetNormalByHitPoint(hit_p, light_sphere);
+						Vector4 normal_original = GetNormalByHitPoint(offset, light_sphere);
 						Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 							translate(Vector3(light_sphere.position.x, light_sphere.position.y, light_sphere.position.z)))) * normal_original);
 						Vector3 normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
@@ -1874,7 +1894,13 @@ Vector3 Renderer::Illumination_hw_3_7(Ray& ray, bool isPrimary_ray, Vector3 HitP
 							if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 								visibility.push_back(1.);
 							else
-								visibility.push_back(0);
+							{
+								int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+								if (shadow_hit_area_light_id == light_mesh.area_light_id)
+									visibility.push_back(1.);
+								else
+									visibility.push_back(0);
+							}
 
 							light_direction = normalize(light_direction);
 							Vector4 normal_original = GetNormalByHitPoint(hit_p, light_triangle);
@@ -2000,13 +2026,13 @@ Vector3 Renderer::Illumination_hw_3_9(Ray& ray, bool isPrimary_ray, Vector3 HitP
 			ParsedDiffuseAreaLight area_light = std::get<ParsedDiffuseAreaLight>(light);
 			if (scene.src_shapes[area_light.shape_id]->index() == 0) // sphere
 			{
-				Real u1_ori = next_pcg32_real<Real>(rng);
-				Real u2_ori = next_pcg32_real<Real>(rng);
 				int sqrt_N = sqrt(vars.area_light_samples);
 				Real u1;
 				Real u2;
 				for (int i = 0; i < sqrt_N; i++) {
 					for (int j = 0; j < sqrt_N; j++) {
+						Real u1_ori = next_pcg32_real<Real>(rng);
+						Real u2_ori = next_pcg32_real<Real>(rng);
 						u1 = (i + u1_ori) / sqrt_N;
 						u2 = (j + u2_ori) / sqrt_N;
 
@@ -2014,6 +2040,7 @@ Vector3 Renderer::Illumination_hw_3_9(Ray& ray, bool isPrimary_ray, Vector3 HitP
 						Real theta = acos(1. - 2. * u1);
 						Real phi = 2. * c_PI * u2;
 						Vector3 offset = { sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
+						offset *= light_sphere.radius;
 						Vector3 hit_p = light_sphere.position + offset;
 						position.push_back(hit_p);
 						light_direction = HitPoint - hit_p;
@@ -2023,10 +2050,16 @@ Vector3 Renderer::Illumination_hw_3_9(Ray& ray, bool isPrimary_ray, Vector3 HitP
 						if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 							visibility.push_back(1.);
 						else
-							visibility.push_back(0);
+						{
+							int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+							if (shadow_hit_area_light_id == light_sphere.area_light_id)
+								visibility.push_back(1.);
+							else
+								visibility.push_back(0);
+						}
 
 						light_direction = normalize(light_direction);
-						Vector4 normal_original = GetNormalByHitPoint(hit_p, light_sphere);
+						Vector4 normal_original = GetNormalByHitPoint(offset, light_sphere);
 						Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 							translate(Vector3(light_sphere.position.x, light_sphere.position.y, light_sphere.position.z)))) * normal_original);
 						Vector3 normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
@@ -2040,13 +2073,13 @@ Vector3 Renderer::Illumination_hw_3_9(Ray& ray, bool isPrimary_ray, Vector3 HitP
 				ParsedTriangleMesh& light_mesh = std::get<ParsedTriangleMesh>(*scene.src_shapes[area_light.shape_id]);
 				for (int i = 0; i < light_mesh.indices.size(); i++)
 				{
-					Real u1_ori = next_pcg32_real<Real>(rng);
-					Real u2_ori = next_pcg32_real<Real>(rng);
 					int sqrt_N = sqrt(vars.area_light_samples);
 					Real u1;
 					Real u2;
 					for (int k = 0; k < sqrt_N; k++) {
 						for (int j = 0; j < sqrt_N; j++) {
+							Real u1_ori = next_pcg32_real<Real>(rng);
+							Real u2_ori = next_pcg32_real<Real>(rng);
 							u1 = (k + u1_ori) / sqrt_N;
 							u2 = (j + u2_ori) / sqrt_N;
 							//std::cout << "u1:" << u1 << ",u2:" << u2 << std::endl;
@@ -2066,7 +2099,13 @@ Vector3 Renderer::Illumination_hw_3_9(Ray& ray, bool isPrimary_ray, Vector3 HitP
 							if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 								visibility.push_back(1.);
 							else
-								visibility.push_back(0);
+							{
+								int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+								if (shadow_hit_area_light_id == light_mesh.area_light_id)
+									visibility.push_back(1.);
+								else
+									visibility.push_back(0);
+							}
 
 							light_direction = normalize(light_direction);
 							Vector4 normal_original = GetNormalByHitPoint(hit_p, light_triangle);
@@ -2191,21 +2230,35 @@ Vector3 Renderer::Illumination_hw_3_11(Ray& ray, bool isPrimary_ray, Vector3 Hit
 			ParsedDiffuseAreaLight area_light = std::get<ParsedDiffuseAreaLight>(light);
 			if (scene.src_shapes[area_light.shape_id]->index() == 0) // sphere
 			{
-				Real u1_ori = next_pcg32_real<Real>(rng);
-				Real u2_ori = next_pcg32_real<Real>(rng);
 				int sqrt_N = sqrt(vars.area_light_samples);
 				Real u1;
 				Real u2;
 				for (int i = 0; i < sqrt_N; i++) {
 					for (int j = 0; j < sqrt_N; j++) {
+						Real u1_ori = next_pcg32_real<Real>(rng);
+						Real u2_ori = next_pcg32_real<Real>(rng);
 						u1 = (i + u1_ori) / sqrt_N;
 						u2 = (j + u2_ori) / sqrt_N;
 
 						ParsedSphere& light_sphere = std::get<ParsedSphere>(*scene.src_shapes[area_light.shape_id]);
-						Real cos_theta_max = sqrt(1. - (light_sphere.radius * light_sphere.radius) / length_squared(light_sphere.position - HitPoint));
+						Real dc = length(light_sphere.position - HitPoint);
+						Real cos_theta_max = sqrt(max(0.,1. - (light_sphere.radius * light_sphere.radius) / dc * dc));
+						//std::cout << "cos_max:" << cos_theta_max << std::endl;
 						Real theta = acos(1. + (cos_theta_max - 1.) * u1);
+						//std::cout << "theta:" << theta << std::endl;
+						//Real theta = acos(1. - 2. * u1);
 						Real phi = 2. * c_PI * u2;
-						Vector3 offset = { sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
+						Real r = light_sphere.radius;
+						Real cos_theta = cos(theta);
+						Real sin_theta = sin(theta);
+						Real ds = dc * cos_theta - sqrt(max(0.,r * r - pow(dc * sin_theta,2)));
+						Real cos_alpha = (dc * dc + r * r - ds * ds) / (2. * dc * r);
+						//std::cout << "cos_alpha:" << cos_alpha << std::endl;
+						Real sin_alpha = sqrt(max(0., 1. - cos_alpha * cos_alpha));
+						//Vector3 offset = { sin_alpha * cos(phi), sin_alpha * sin(phi), cos_alpha };
+						Vector3 offset = { sin_alpha * cos(phi), -cos_alpha, sin_alpha * sin(phi)};
+						//Vector3 offset = { sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
+						offset *= light_sphere.radius;
 						Vector3 hit_p = light_sphere.position + offset;
 						position.push_back(hit_p);
 						light_direction = HitPoint - hit_p;
@@ -2215,15 +2268,22 @@ Vector3 Renderer::Illumination_hw_3_11(Ray& ray, bool isPrimary_ray, Vector3 Hit
 						if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 							visibility.push_back(1.);
 						else
-							visibility.push_back(0);
+						{
+							int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+							if (shadow_hit_area_light_id == light_sphere.area_light_id)
+								visibility.push_back(1.);
+							else
+								visibility.push_back(0);
+						}
 
 						light_direction = normalize(light_direction);
-						Vector4 normal_original = GetNormalByHitPoint(hit_p, light_sphere);
+						Vector4 normal_original = GetNormalByHitPoint(offset, light_sphere);
 						Vector4 normal_transformed_4 = Vector4(transpose(inverse(
-							translate(Vector3(light_sphere.position.x, light_sphere.position.y, light_sphere.position.z)))) * normal_original);
+							translate(normalize(Vector3(light_sphere.position.x, light_sphere.position.y, light_sphere.position.z))))) * normal_original);
 						Vector3 normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
 						Real cos_light = max(dot(light_direction, normal_transformed), 0.);
-						pdf_and_cos.push_back(cos_light * 2 * c_PI * (1 - cos_theta_max) * light_sphere.radius * light_sphere.radius / (Real) vars.area_light_samples);
+						Real cos_alpha_max = sqrt(1. - cos_theta_max * cos_theta_max);
+						pdf_and_cos.push_back(cos_light * 2 * (1. - cos_alpha_max) * c_PI * light_sphere.radius * light_sphere.radius / (Real) vars.area_light_samples);
 					}
 				}
 			}
@@ -2237,13 +2297,13 @@ Vector3 Renderer::Illumination_hw_3_11(Ray& ray, bool isPrimary_ray, Vector3 Hit
 						if (i % light_mesh.indices.size() != 0)
 							continue;
 					}
-					Real u1_ori = next_pcg32_real<Real>(rng);
-					Real u2_ori = next_pcg32_real<Real>(rng);
 					int sqrt_N = sqrt(vars.area_light_samples);
 					Real u1;
 					Real u2;
 					for (int k = 0; k < sqrt_N; k++) {
 						for (int j = 0; j < sqrt_N; j++) {
+							Real u1_ori = next_pcg32_real<Real>(rng);
+							Real u2_ori = next_pcg32_real<Real>(rng);
 							u1 = (k + u1_ori) / sqrt_N;
 							u2 = (j + u2_ori) / sqrt_N;
 							//std::cout << "u1:" << u1 << ",u2:" << u2 << std::endl;
@@ -2263,7 +2323,13 @@ Vector3 Renderer::Illumination_hw_3_11(Ray& ray, bool isPrimary_ray, Vector3 Hit
 							if (!FindNearstIntersection_BVH(shadow_ray, scene, m_BVH, 1e-4, length(light_direction), rng))
 								visibility.push_back(1.);
 							else
-								visibility.push_back(0);
+							{
+								int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
+								if (shadow_hit_area_light_id == light_mesh.area_light_id)
+									visibility.push_back(1.);
+								else
+									visibility.push_back(0);
+							}
 
 							light_direction = normalize(light_direction);
 							Vector4 normal_original = GetNormalByHitPoint(hit_p, light_triangle);

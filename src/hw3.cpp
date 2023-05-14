@@ -156,12 +156,12 @@ Image3 hw_3_4(const std::vector<std::string> &params) {
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
     vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    //vars.cameraParameters.samples_per_pixel = 1;
+    //vars.cameraParameters.samples_per_pixel = 64;
 
     //larger the file, larger the parallel_counts for bvh
     vars.parallel_counts_bvh = 16;
     // enable shading_normal
-    vars.shading_normal = false;
+    vars.shading_normal = true;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_3_4, &Renderer::Illumination_hw_3_4);
@@ -203,7 +203,7 @@ Image3 hw_3_7(const std::vector<std::string>& params) {
     //larger the file, larger the parallel_counts for bvh
     vars.parallel_counts_bvh = 16;
     // enable shading_normal
-    vars.shading_normal = false;
+    vars.shading_normal = true;
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
     render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_3_7, &Renderer::Illumination_hw_3_7);
@@ -245,7 +245,7 @@ Image3 hw_3_9(const std::vector<std::string>& params) {
     //larger the file, larger the parallel_counts for bvh
     vars.parallel_counts_bvh = 16;
     // enable shading_normal
-    vars.shading_normal = false;
+    vars.shading_normal = true;
     // enable multiple sampling on area lights, must be square
     vars.area_light_samples = 4*4;
 
@@ -285,16 +285,18 @@ Image3 hw_3_11(const std::vector<std::string>& params) {
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
     vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
+    vars.cameraParameters.samples_per_pixel = 8;
+
     //larger the file, larger the parallel_counts for bvh
     vars.parallel_counts_bvh = 16;
     // enable shading_normal
-    vars.shading_normal = false;
+    vars.shading_normal = true;
     // enable multiple sampling on area lights, must be square
     //vars.area_light_samples = 4 * 4;
 
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
-    render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_3_11, &Renderer::Illumination_hw_3_11);
+    render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_3_3, &Renderer::Illumination_hw_3_11);
     img = render.GetImage();
 
     return *img;
