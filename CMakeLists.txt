@@ -51,6 +51,7 @@ set(SRCS src/3rdparty/miniz.h
          src/aabb.h
          src/BVH.h
          src/Material.h
+         src/Sampler.h
          src/compute_normals.cpp
          src/hw1.cpp
          src/hw2.cpp

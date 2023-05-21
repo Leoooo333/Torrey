@@ -9,8 +9,9 @@
       "name": "torrey.exe",
       "args": [
         "-hw",
-        "3_11",
-        "../scenes/head/head_spherical_light.xml"
+        "4_4",
+        "../../hw4/design/design_hw4.xml",
+        "-max_depth 10"
       ]
     }
   ]

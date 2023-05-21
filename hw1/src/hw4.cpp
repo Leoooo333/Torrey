@@ -49,11 +49,11 @@ Image3 hw_4_1(const std::vector<std::string> &params) {
     // enable shading_normal
     vars.shading_normal = true;
     // enable multiple sampling on area lights, must be square
-    vars.area_light_samples = 4 * 4;
+    //vars.area_light_samples = 4 * 4;
 
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
-    render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_3_9, &Renderer::Illumination_hw_3_9);
+    render.Render_BVH(cam, vars, s, &Renderer::Miss_hw_4_1, &Renderer::Illumination_hw_4_1);
     img = render.GetImage();
 
     return *img;
