@@ -43,7 +43,7 @@ Image3 hw_4_1(const std::vector<std::string>& params) {
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
     vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    //vars.cameraParameters.samples_per_pixel = 4;
+    vars.cameraParameters.samples_per_pixel = 4;
 
     //larger the file, larger the parallel_counts for bvh
     vars.parallel_counts_bvh = 16;

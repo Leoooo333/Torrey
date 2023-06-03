@@ -65,3 +65,8 @@ hw2/HW2_Report.md
 hw2/hw_2_5.exr
 hw2/hw_2_7.exr
 hw2/hw_2_8.exr
+.vs/slnx.sqlite
+.vs/CSE168/v16/.suo
+*.json
+*.sqlite
+*.json
