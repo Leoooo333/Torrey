@@ -9,8 +9,8 @@
       "name": "torrey.exe",
       "args": [
         "-hw",
-        "4_1",
-        "../scenes/hw1_spheres/scene1_spherical_light.xml",
+        "fp_1",
+        "../../final/teapot_textured_tile.xml",
         "-max_depth 50"
       ]
     }

@@ -184,9 +184,9 @@ private:
 	Variables m_Vars;
 	std::shared_ptr<Image3> m_Image;
 	Real m_RenderTime = 0.f;
-	Sampler* m_Sampler;
 public:
 	BVH m_BVH;
+	Sampler* m_Sampler=nullptr;
 };
 
 

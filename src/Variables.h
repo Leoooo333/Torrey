@@ -49,4 +49,5 @@ public:
 	int brdf_samples = 1;
 	CameraType cameraType = PERSPECTIVE_CAM;
 	bool multi_sample = false;
+
 };

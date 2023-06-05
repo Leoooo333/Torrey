@@ -57,6 +57,8 @@ Ray PerspectiveCamera::CalculateRayDirections(int x, int y, Vector2 offset, pcg3
 	else
 		rayDirection = normalize(target);
 	Ray ray = { rayOrigin, rayDirection , time};
+	ray.spread = Real(0.25) / (Real)max(m_CameraParameters.width, m_CameraParameters.height);
+
 	return ray;
 }
 

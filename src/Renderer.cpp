@@ -27,7 +27,14 @@ public:
 		else // Texture
 		{
 			Texture& texture = std::get<Texture>(m_color);
-			surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+			// Approximate du/dx = (dp/dx) / (dp/du) = radius / dpdu
+			Real dp_duv = (length(ray.dpdu), length(ray.dpdv)) / 2.;
+			Real footprint = ray.radius / dp_duv;
+			Real level = texture.GetLevel(footprint);
+			//level = 0;
+			//if(level >=4.)
+			//	std::cout << "level:" << level << ",radius:" << ray.radius << std::endl;
+			surface_color = texture.GetColor(ray.u_coor, ray.v_coor, level);
 		}
 		Vector3 color_weight = { 0., 0., 0. };
 		Real noize_theta = next_pcg32_real<Real>(rng) * c_PI;
@@ -659,7 +666,7 @@ public:
 							Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 								translate(normalize(Vector3(light_sphere.position.x, light_sphere.position.y, light_sphere.position.z))))) * normal_original);
 							Vector3 normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
-							Real cos_light = max(dot(-ray_copy.Direction, normal_transformed), 0.);
+							Real cos_light = max(dot(-ray_copy.Direction, normal_transformed),0.);
 							if (cos_light <= 0)
 								PDF_value = 0.;
 							else
@@ -1577,9 +1584,8 @@ void Renderer::Render_BVH_Path_One_Sample(CameraUnion& camera, Variables& vars, 
 	Vector3(Renderer::* illumination)(Ray&, bool, Vector3, Vector3, Shape&, Scene&, Variables&, pcg32_state&))
 {
 	m_Vars = vars;
-	//m_Sampler = new One_Mix_Sampler();
-	m_Sampler = new BRDF_Sampler();
-	//m_Sampler = new Light_Sampler();
+	if (m_Sampler == nullptr)
+		m_Sampler = new One_Mix_Sampler();
 
 	int width = std::visit([=](auto& cam) {return cam.m_CameraParameters.width; }, camera);
 	int height = std::visit([=](auto& cam) {return cam.m_CameraParameters.height; }, camera);
@@ -1638,7 +1644,6 @@ void Renderer::Render_BVH_Path_One_Sample(CameraUnion& camera, Variables& vars, 
 					Vector3 color = Vector3(0., 0., 0.);
 					Vector2 offset = Vector2(0.5, 0.5);
 					Ray ray = std::visit([=](auto& cam) {return cam.CalculateRayDirections(x, y, offset, rng); }, camera);
-
 					color = TraceRay_BVH_Path_One_Sample(ray, scene, true, vars.max_depth, miss, illumination, rng);
 
 					(*m_Image)(x, height - 1 - y) = color;
@@ -2580,7 +2585,7 @@ Vector3 Renderer::HitNearst_BVH_Path_One_Sample(Ray& ray, Scene& scene, bool isR
 	Shape& NearstObj = *ray.object;
 	Vector3 hit_point_original = HitPointOriginal(ray, NearstObj);
 	Vector3 hit_point = ray.Origin + ray.distance * ray.Direction;
-
+	ray.radius += ray.spread * ray.distance;
 
 	int material_id;
 	Vector3 normal_transformed;
@@ -2621,6 +2626,10 @@ Vector3 Renderer::HitNearst_BVH_Path_One_Sample(Ray& ray, Scene& scene, bool isR
 	ray.Origin = hit_point;
 	ray.object.reset();
 	ray.distance = 0.;
+
+	int area_light_id = std::visit([&](auto& shape) {return shape.area_light_id; }, NearstObj);
+
+
 	if (isReflect)
 	{
 		if (dot(ray.Direction, normal_transformed) > 0)
@@ -2682,7 +2691,8 @@ Vector3 Renderer::HitNearst_BVH_Path_One_Sample(Ray& ray, Scene& scene, bool isR
 		{
 			bool is_reflect = false;
 			bool is_refract = false;
-
+			if (area_light_id != -1)
+				return emit_color;
 			Vector3 scatter_direction = m_Sampler->SampleDirection(material, ray, normal_transformed, m_Vars, scene, m_BVH, rng, &is_reflect, &is_refract);
 			//std::cout << "scatter:(" << scatter_direction.x << "," << scatter_direction.y << "," << scatter_direction.z << ")" << std::endl;
 			Real pdf = m_Sampler->GetPDF(material, ray, normal_transformed, m_Vars, scatter_direction, scene, m_BVH, rng, is_reflect, is_refract);

@@ -4,41 +4,6 @@
 #include "transform.h"
 #include "Material.h"
 #include "3rdparty/pcg.h"
-//class Object
-//{
-//public:
-//	Shape type;
-//	Vector4 ambient;
-//	Vector4 diffuse;
-//	Vector4 specular;
-//	Vector4 emission;
-//	//Vector4 transition = Vector4(0.95f);
-//	Real shininess;
-//	Object(Vector4 ambient, Vector4 diffuse, Vector4 specular, Vector4 emission, Real shininess)
-//	{
-//		this->ambient = ambient;
-//		this->diffuse = diffuse;
-//		this->specular = specular;
-//		this->emission = emission;
-//		this->shininess = shininess;
-//	}
-//	Vector3 scales;
-//	Real FindIntersection(Ray& ray);
-//	Matrix4x4 Transform;
-//	Matrix4x4 InverseTransform;
-//	void SetTransform(Matrix4x4 transform)
-//	{
-//		this->Transform = transform;
-//		this->InverseTransform = inverse(transform);
-//	}
-//	Vector4 GetNormalByHitPoint(Matrix4x4 hitpoint);
-//};
-
-//struct Triangle {
-//	int face_index;
-//	const ParsedTriangleMesh* mesh;
-//};
-
 
 struct Triangle
 {
@@ -79,6 +44,10 @@ struct Ray
     Real distance;
 	Real u_coor = -1;
 	Real v_coor = -1;
+	Vector3 dpdu = {0.,0.,0.};
+	Vector3 dpdv = { 0.,0.,0. };
+	Real radius = 0.;
+	Real spread = 0.;
 	bool front_face = true;
 
 	bool FindIntersection(ParsedSphere& sphere, Matrix4x4 transform, Real t_min, Real t_max)
@@ -114,9 +83,16 @@ struct Ray
 				Real theta = acos(point_original.y);
 				Real phi = atan2(-point_original.z, point_original.x) + c_PI;
 
+	
 				u_coor = phi / (2 * c_PI);
 				v_coor = theta / c_PI;
 
+				dpdu = sphere.radius * Vector3(-sin(v_coor) * sin(u_coor),
+					sin(v_coor) * cos(u_coor),
+					0.) * 2. * c_PI;
+				dpdv = sphere.radius * Vector3(cos(v_coor) * cos(u_coor),
+					cos(v_coor) * sin(u_coor),
+					-sin(u_coor));
 				return true;
 			}
 			else
@@ -201,15 +177,28 @@ struct Ray
 				if(triangle.mesh->uvs.size() != 0)
 				{
 					//std::cout << barycentric.x << "," << barycentric.y << "," << barycentric.z << std::endl;
-					Vector2 uv_coor = 
-					{ dot(Vector3(triangle.mesh->uvs[triangle.mesh->indices[triangle.index][0]].x,
-						triangle.mesh->uvs[triangle.mesh->indices[triangle.index][1]].x,
-						triangle.mesh->uvs[triangle.mesh->indices[triangle.index][2]].x),
+					Vector2 uv_0 = triangle.mesh->uvs[triangle.mesh->indices[triangle.index][0]];
+					Vector2 uv_1 = triangle.mesh->uvs[triangle.mesh->indices[triangle.index][1]];
+					Vector2 uv_2 = triangle.mesh->uvs[triangle.mesh->indices[triangle.index][2]];
+
+
+					Vector2 uv_coor = { dot(Vector3(uv_0.x,uv_1.x, uv_2.x),
 						barycentric),
-					 dot(Vector3(triangle.mesh->uvs[triangle.mesh->indices[triangle.index][0]].y,
-						triangle.mesh->uvs[triangle.mesh->indices[triangle.index][1]].y,
-						triangle.mesh->uvs[triangle.mesh->indices[triangle.index][2]].y),
+					 dot(Vector3(uv_0.y,uv_1.y,uv_2.y),
 						barycentric)};
+					//here s = b1, t = b2
+					Vector2 duvds = uv_2 - uv_0;
+					Vector2 duvdt = uv_2 - uv_1;
+					Real det = duvds[0] * duvdt[1] - duvdt[0] * duvds[1];
+					Real dsdu = duvdt[1] / det;
+					Real dtdu = -duvds[1] / det;
+					Real dsdv = duvdt[0] / det;
+					Real dtdv = -duvds[0] / det;
+					Vector3 dpds = p3 - p1;
+					Vector3 dpdt = p3 - p2;
+					dpdu = dpds * dsdu + dpdt * dtdu;
+					dpdv = dpds * dsdv + dpdt * dtdv;
+
 					u_coor = uv_coor.x;
 					v_coor = uv_coor.y;
 				}

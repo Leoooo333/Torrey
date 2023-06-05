@@ -2,6 +2,7 @@
 #include "hw2.h"
 #include "hw3.h"
 #include "hw4.h"
+#include "final.h"
 #include "image.h"
 #include "parallel.h"
 #include <vector>
@@ -130,6 +131,21 @@ int main(int argc, char *argv[]) {
     } else if (hw_num == "4_8") {
     Image3 img = hw_4_8(parameters);
     imwrite("hw_4_8.exr", img);
+    } else if (hw_num == "fp_1") {
+    Image3 img = final_proj_1(parameters);
+    imwrite("final_proj_1.exr", img);
+    } else if (hw_num == "fp_2") {
+    Image3 img = final_proj_2(parameters);
+    imwrite("final_proj_2.exr", img);
+    } else if (hw_num == "fp_3") {
+    Image3 img = final_proj_3(parameters);
+    imwrite("final_proj_3.exr", img);
+    } else if (hw_num == "fp_4") {
+    Image3 img = final_proj_4(parameters);
+    imwrite("final_proj_4.exr", img);
+    } else if (hw_num == "fp_5") {
+    Image3 img = final_proj_5(parameters);
+    imwrite("final_proj_5.exr", img);
     }
 
     parallel_cleanup();

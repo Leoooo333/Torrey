@@ -70,3 +70,5 @@ hw2/hw_2_8.exr
 *.json
 *.sqlite
 *.json
+final/*
+.vs/*
