@@ -55,6 +55,7 @@ set(SRCS src/3rdparty/miniz.h
          src/Texture.h
          src/Mipmap.h
          src/Sampler.h
+         src/Distribution.h
          src/compute_normals.cpp
          src/hw1.cpp
          src/hw2.cpp
@@ -75,7 +76,10 @@ set(SRCS src/3rdparty/miniz.h
          src/Renderer.cpp
          src/aabb.cpp
          src/BVH.cpp
-         src/Material.cpp)
+         src/Material.cpp
+         src/Distribution.cpp
+         src/Texture.cpp
+)
 
 
 add_library(torrey_lib STATIC ${SRCS})

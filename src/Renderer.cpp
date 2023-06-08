@@ -8,6 +8,7 @@
 #include "transform.h"
 #include "progressreporter.h"
 #include "3rdparty/stb_image.h"
+#include "parse_scene.cpp"
 #include <compute_normals.cpp>
 #include <numeric>
 
@@ -579,18 +580,40 @@ public:
 			}
 		}
 
-		
 		if (!Renderer::FindNearstIntersection_BVH(shadow_ray, scene, node, 1e-4, m_Vars.t_max, rng))
 		{
-			return 0.;
+			bool exist_envmap = false;
+			for (ParsedLight light : scene.lights)
+			{
+				if (light.index() == 2) // env_map
+				{
+					exist_envmap = true;
+					ParsedEnvMap& envmap = std::get<ParsedEnvMap>(light);
+					Vector4 direc_light_4 = envmap.world_to_light * Vector4(normalize(direction), 0.);
+					Vector3 direc_light = normalize(Vector3(direc_light_4.x, direc_light_4.y, direc_light_4.z));
+					Vector2 uv_real = envmap.GetUV(direc_light);
+					Vector2i uv_int = { (int)(uv_real[0] * (Real)envmap.texture.width),
+										(int)(uv_real[1] * (Real)envmap.texture.height) };
+					Real pdf = envmap.dist_2d.GetPDF(uv_int) / envmap.dist_2d.marginal_rows->funcIntegral;
+					pdf *= (Real)envmap.texture.width * (Real)envmap.texture.height;
+					//std::cout << pdf << std::endl;
+					Real sin_theta = sin(uv_real[1] * c_PI);
+					if (sin_theta < 0.)
+						return 0.;
+					Real pdf_wo = pdf / (2. * c_PI * c_PI * sin_theta);
+					PDF_value = pdf_wo;
+				}
+			}
+			
+			if(!exist_envmap)
+				return 0.;
 		}
 		else
 		{
-
 			int shadow_hit_area_light_id = std::visit([&](auto shape) {return shape.area_light_id; }, *shadow_ray.object);
 			int visibility = 1;
 			//if (shadow_hit_area_light_id == -1) // hit object instead of light
-				//return 0.;
+			//	return 0.;
 			 // is area light
 			//{
 			//	if (shadow_ray.object->index() == 0) // sphere
@@ -637,8 +660,9 @@ public:
 			//}
 
 
-			ParsedLight hit_light = scene.lights[shadow_hit_area_light_id];
+			//ParsedLight hit_light = scene.lights[shadow_hit_area_light_id];
 			int index = 0;
+			bool hit_envmap = true;
 			for(ParsedLight light : scene.lights)
 			{
 				if(shadow_hit_area_light_id != index++)
@@ -650,7 +674,7 @@ public:
 				{
 					PDF_value = 1.;
 				}
-				else // is area light
+				else if (light.index() == 1) // is area light
 				{
 					ParsedDiffuseAreaLight area_light = std::get<ParsedDiffuseAreaLight>(light);
 					if (scene.src_shapes[area_light.shape_id]->index() == 0) // sphere
@@ -659,6 +683,7 @@ public:
 						Ray ray_copy = { ray.Origin, normalize(direction) };
 						if(ray_copy.FindIntersection(light_sphere, translate(light_sphere.position), m_Vars.t_min, m_Vars.t_max))
 						{
+							hit_envmap = false;
 							Real dc = length(light_sphere.position - ray.Origin);
 							Real cos_theta_max = sqrt(max(0., (light_sphere.radius * light_sphere.radius) / (dc * dc)));
 							Vector3 hit_p = ray_copy.Origin + ray_copy.distance * ray_copy.Direction;
@@ -684,6 +709,7 @@ public:
 							Ray ray_copy = { ray.Origin, normalize(direction) };
 							if(ray_copy.FindIntersection(light_triangle, translate(Vector3(0., 0., 0.)), m_Vars.t_min, m_Vars.t_max))
 							{
+								hit_envmap = false;
 								Vector3 hit_p = ray_copy.Origin + ray_copy.distance * ray_copy.Direction;
 								//Vector3 normal_1 = light_triangle.mesh->normals[light_triangle.mesh->indices[light_triangle.index][0]];
 								//Vector3 normal_2 = light_triangle.mesh->normals[light_triangle.mesh->indices[light_triangle.index][1]];
@@ -705,10 +731,30 @@ public:
 				
 			}
 
-			return PDF_value / scene.lights.size();
-
+			if (hit_envmap)
+			{
+				for(ParsedLight light : scene.lights)
+				{
+					if (light.index() == 2) // env_map
+					{
+						ParsedEnvMap& envmap = std::get<ParsedEnvMap>(light);
+						Vector4 direc_light_4 = envmap.world_to_light * Vector4(normalize(direction), 0.);
+						Vector3 direc_light = normalize(Vector3(direc_light_4.x, direc_light_4.y, direc_light_4.z));
+						Vector2 uv_real = envmap.GetUV(direc_light);
+						Vector2i uv_int = { (int)(uv_real[0] * (Real)envmap.texture.width),
+											(int)(uv_real[1] * (Real)envmap.texture.height) };
+						Real pdf = envmap.dist_2d.GetPDF(uv_int) / envmap.dist_2d.marginal_rows->funcIntegral;
+						pdf *= (Real)envmap.texture.width * (Real)envmap.texture.height;
+						Real sin_theta = sin(uv_real[1] * c_PI);
+						if (sin_theta < 0.)
+							return 0.;
+						Real pdf_wo = pdf / (2. * c_PI * c_PI * sin_theta);
+						PDF_value = pdf_wo;
+					}
+				}
+			}
 		}
-
+		return PDF_value / scene.lights.size();
 	}
 	Vector3 SampleDirection(Material material, Ray ray, Vector3 normal, Variables& m_Vars, Scene& scene, BVH& node, pcg32_state& rng, bool* is_reflect, bool* is_refract)
 	{
@@ -795,14 +841,18 @@ public:
 		//	current_index++;
 		//}
 
-
-		int random_light_index = (int)(next_pcg32_real<Real>(rng) * (Real) scene.lights.size());
+		std::vector<Real> lights_pdf;
+		for(int i =0; i < scene.lights.size();i++)
+		{
+			lights_pdf.push_back(1.);
+		}
+		Distribution1D lights_distribution(lights_pdf);
+		int random_light_index = lights_distribution.sample(rng);
 		//std::cout << random_light_index << std::endl;
 		ParsedLight light_random = scene.lights[random_light_index];
 		//ParsedLight light_max = scene.lights[max_index];
-		ParsedLight light_target;
-		////random choose light;
-		light_target = light_random;
+		ParsedLight& light_target = light_random;
+
 
 		//choose max light;
 		//if (random_p < 0.)
@@ -840,8 +890,9 @@ public:
 				visibility.push_back(1.);
 			else
 				visibility.push_back(0);
+			return normalize(point_light.position - ray.Origin);
 		}
-		else // is area light
+		else if(light_random.index() == 1)// is area light
 		{
 			ParsedDiffuseAreaLight area_light = std::get<ParsedDiffuseAreaLight>(light_target);
 			if (scene.src_shapes[area_light.shape_id]->index() == 0) // sphere
@@ -952,11 +1003,29 @@ public:
 					}
 				}
 			}
+			int random_light_area_index = (int)(next_pcg32_real<Real>(rng) * (Real)position.size());
+			//std::cout << random_light_area_index << std::endl;
+			return normalize(position[random_light_area_index] - ray.Origin);
+		}
+		else if(light_random.index() == 2)
+		{
+			ParsedEnvMap& envmap = std::get<ParsedEnvMap>(light_random);
+			Vector2i uv_int = envmap.dist_2d.sample(rng);
+			Vector2 uv_real = { (Real)uv_int[0] / (Real)envmap.texture.width,
+								(Real)uv_int[1] / (Real)envmap.texture.height };
+			Real theta = uv_real[1] * c_PI;
+			Real phi = uv_real[0] * 2. * c_PI;
+
+			Vector3 direc_light = { -cos(phi) * sin(theta),
+									cos(theta),
+									sin(phi) * sin(theta) };
+			Vector4 direc_world_4 = envmap.light_to_world * Vector4(direc_light, 0.);
+			Vector3 direc_world = normalize(Vector3(direc_world_4.x, direc_world_4.y, direc_world_4.z));
+
+			return direc_world;
+
 		}
 
-		int random_light_area_index = (int)(next_pcg32_real<Real>(rng) * (Real) position.size());
-		//std::cout << random_light_area_index << std::endl;
-		return normalize(position[random_light_area_index] - ray.Origin);
 
 
 		//	Vector3 color_from_light = Vector3(0., 0., 0.);
@@ -2696,6 +2765,7 @@ Vector3 Renderer::HitNearst_BVH_Path_One_Sample(Ray& ray, Scene& scene, bool isR
 			Vector3 scatter_direction = m_Sampler->SampleDirection(material, ray, normal_transformed, m_Vars, scene, m_BVH, rng, &is_reflect, &is_refract);
 			//std::cout << "scatter:(" << scatter_direction.x << "," << scatter_direction.y << "," << scatter_direction.z << ")" << std::endl;
 			Real pdf = m_Sampler->GetPDF(material, ray, normal_transformed, m_Vars, scatter_direction, scene, m_BVH, rng, is_reflect, is_refract);
+			//std::cout << pdf << std::endl;
 			Vector3 brdf = m_Sampler->GetBRDF(material, ray, normal_transformed, m_Vars, scatter_direction, scene, m_BVH, rng, is_reflect, is_refract);
 			ray.Direction = scatter_direction;
 
@@ -5026,6 +5096,63 @@ Vector3 Renderer::Miss_hw_4_3(const Ray& ray, Scene& scene, Variables& vars, int
 }
 
 Vector3 Renderer::Illumination_hw_4_3(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars, pcg32_state& rng)
+{
+	int material_id;
+	if (NearstObj.index() == 0) // sphere
+		material_id = std::get<ParsedSphere>(NearstObj).material_id;
+	else // triangle
+		material_id = std::get<Triangle>(NearstObj).mesh->material_id;
+	Material material = scene.materials[material_id];
+	Color m_color = std::visit([=](auto& m) {return m.reflectance; }, material);
+	Vector3 surface_color;
+	if (m_color.index() == 0) // RGB color
+		surface_color = std::get<Vector3>(m_color);
+	else // Texture
+	{
+		Texture& texture = std::get<Texture>(m_color);
+		surface_color = texture.GetColor(ray.u_coor, ray.v_coor);
+	}
+
+	Vector3 color{ 0., 0., 0. };
+	int area_light_id = std::visit([&](auto& shape) {return shape.area_light_id; }, NearstObj);
+
+	if (area_light_id != -1 && dot(Normal, -ray.Direction) > 0) // is area_light
+	{
+		Vector3 l_e = std::get<ParsedDiffuseAreaLight>(scene.lights[area_light_id]).radiance;
+		color = l_e;
+	}
+	return color;
+}
+
+Vector3 Renderer::Miss_final(const Ray& ray, Scene& scene, Variables& vars, int max_depth)
+{
+	for(ParsedLight light : scene.lights)
+	{
+		if (light.index() == 2) // env_map
+		{
+			ParsedEnvMap& envmap = std::get<ParsedEnvMap>(light);
+			Vector4 direc_light_4 = envmap.world_to_light * Vector4(ray.Direction, 0.);
+			Vector3 direc_light = normalize(Vector3(direc_light_4.x, direc_light_4.y, direc_light_4.z));
+			Vector2 uv_real = envmap.GetUV(direc_light);
+			Vector2i uv_int = { (int)(uv_real[0] * (Real)envmap.texture.width),
+								(int)(uv_real[1] * (Real)envmap.texture.height) };
+			Real pdf = envmap.dist_2d.GetPDF(uv_int);
+			// dudw * dwdx = dudx
+			Real theta = acos(direc_light.y);
+			Real phi = atan2(-direc_light.z, direc_light.x) + c_PI;
+			Real footprint = (abs(1. / max(sin(theta), 1e-9)) / ((Real)envmap.texture.width * 2. * c_PI)
+				+ 1. / ((Real)envmap.texture.height * c_PI)) / 2.;
+			Real level = envmap.texture.GetLevel(footprint);
+			Vector3 color = envmap.texture.GetColor(uv_real[0], uv_real[1], level);
+			//Vector3 luminance(pdf, pdf, pdf);
+			//return luminance * envmap.intensity_scale;
+			return color * envmap.intensity_scale;
+		}
+	}
+	return scene.background_color;
+}
+
+Vector3 Renderer::Illumination_final(Ray& ray, bool isPrimary_ray, Vector3 HitPoint, Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars, pcg32_state& rng)
 {
 	int material_id;
 	if (NearstObj.index() == 0) // sphere

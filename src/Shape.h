@@ -87,12 +87,12 @@ struct Ray
 				u_coor = phi / (2 * c_PI);
 				v_coor = theta / c_PI;
 
-				dpdu = sphere.radius * Vector3(-sin(v_coor) * sin(u_coor),
-					sin(v_coor) * cos(u_coor),
-					0.) * 2. * c_PI;
-				dpdv = sphere.radius * Vector3(cos(v_coor) * cos(u_coor),
-					cos(v_coor) * sin(u_coor),
-					-sin(u_coor));
+				dpdu = sphere.radius * Vector3(sin(v_coor) * sin(u_coor),
+					0.,
+					sin(v_coor) * cos(u_coor)) * 2. * c_PI;
+				dpdv = sphere.radius * Vector3(-cos(v_coor) * cos(u_coor),
+					sin(u_coor),
+					cos(v_coor) * sin(u_coor)) * c_PI;
 				return true;
 			}
 			else

@@ -9,8 +9,8 @@
       "name": "torrey.exe",
       "args": [
         "-hw",
-        "fp_1",
-        "../../final/teapot_textured_tile.xml",
+        "fp_2",
+        "../../final/test_envmap/scene1_envmap_blinn.xml",
         "-max_depth 50"
       ]
     }

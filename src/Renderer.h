@@ -110,6 +110,8 @@ public:
 		Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars, pcg32_state& rng);
 	Vector3 Illumination_hw_4_4(Ray& vis_ray, bool isPrimary_ray, Vector3 HitPoint,
 		Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars, pcg32_state& rng);
+	Vector3 Illumination_final(Ray& vis_ray, bool isPrimary_ray, Vector3 HitPoint,
+		Vector3 Normal, Shape& NearstObj, Scene& scene, Variables& vars, pcg32_state& rng);
 
 	Vector3 Miss_hw_1_1(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
 	Vector3 Miss_hw_1_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
@@ -137,6 +139,8 @@ public:
 	Vector3 Miss_hw_4_2(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
 	Vector3 Miss_hw_4_3(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
 	Vector3 Miss_hw_4_4(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
+	Vector3 Miss_final(const Ray& ray, Scene& scene, Variables& vars, int max_depth);
+
 
 
 	bool FindNearstIntersection(Ray& ray, Scene& scene, Real t_min, Real t_max, pcg32_state& rng);

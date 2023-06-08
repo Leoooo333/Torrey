@@ -104,7 +104,7 @@ Image3 final_proj_2(const std::vector<std::string>& params) {
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
     vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    //vars.cameraParameters.samples_per_pixel = 128;
+    //vars.cameraParameters.samples_per_pixel = 2;
 
     //larger the file, larger the parallel_counts for bvh
     vars.parallel_counts_bvh = 16;
@@ -113,9 +113,15 @@ Image3 final_proj_2(const std::vector<std::string>& params) {
     // enable multiple sampling on area lights, must be square
     //vars.area_light_samples = 4 * 4;
 
+    //enable deterministic MIS
+    //vars.multi_sample = true;
+
     CameraUnion cam = GenerateCameraByType(vars.cameraParameters, PERSPECTIVE_CAM);
     Scene s = ParsedSceneToScene(scene);
-    render.Render_BVH_Path(cam, vars, s, &Renderer::Miss_hw_4_2, &Renderer::Illumination_hw_4_2);
+    //render.m_Sampler = new BRDF_Sampler();
+    //render.m_Sampler = new Light_Sampler();
+	render.m_Sampler = new One_Mix_Sampler();
+    render.Render_BVH_Path_One_Sample(cam, vars, s, &Renderer::Miss_final, &Renderer::Illumination_final);
     img = render.GetImage();
 
     return *img;

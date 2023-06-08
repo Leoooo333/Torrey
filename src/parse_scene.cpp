@@ -6,6 +6,7 @@
 #include "parse_ply.h"
 #include "parse_serialized.h"
 #include "transform.h"
+#include "Distribution.h"
 #include <map>
 #include <regex>
 #include <vector>
@@ -27,6 +28,8 @@ struct ParsedLookAtXform {
     Vector3 lookat = Vector3{ 0, 0, -1 };
     Vector3 up = Vector3{ 0, 1, 0 };
 };
+
+
 
 inline Vector3 sRGB_to_RGB(const Vector3& srgb) {
     // https://en.wikipedia.org/wiki/SRGB#From_sRGB_to_CIE_XYZ
@@ -659,6 +662,32 @@ ParsedLight parse_emitter(pugi::xml_node node,
             }
         }
         return ParsedPointLight{ position, intensity };
+    }
+    else if(type == "envmap")
+    {
+        std::string filename;
+        Matrix4x4 to_world = Matrix4x4::identity();
+        ParsedImageTexture texture;
+        Real intensity_scale = 1.;
+        for (auto child : node.children()) {
+            std::string name = child.name();
+            std::string type_child = child.attribute("type").value();
+            std::string name_child = child.attribute("name").value();
+			if (name == "transform") {
+                to_world = parse_transform(child, default_map);
+            }
+            else if(name == "texture")
+            {
+                ParsedColor color = parse_texture(child, default_map);
+                if (color.index() == 1) // is texture
+                    texture = std::get<ParsedImageTexture>(color);
+            }
+            else if(name_child == "intensity_scale")
+            {
+                intensity_scale = parse_float(child.attribute("value").value(), default_map);
+            }
+        }
+        return ParsedEnvMap(texture, to_world, intensity_scale);
     }
     else {
         Error(std::string("Unknown emitter: ") + type);

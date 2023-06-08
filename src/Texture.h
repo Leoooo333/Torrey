@@ -1,17 +1,26 @@
 #pragma once
+#include "torrey.h"
+#include "Texture.h"
 #include "3rdparty/stb_image.h"
 #include "image.h"
 #include "Mipmap.h"
 #include <map>
 #include <variant>
 
+
+
+struct ParsedImageTexture {
+    fs::path filename;
+    Real uscale = 1, vscale = 1;
+    Real uoffset = 0, voffset = 0;
+};
 struct Texture
 {
     ParsedImageTexture parsedImageTexture;
     MipMap<Vector3> mipMap;
     int width = 0, height = 0;
     int bytes_per_scanline;
-
+    Texture() = default;
     Texture(ParsedImageTexture p_ImageTexture)
     {
         parsedImageTexture = p_ImageTexture;
@@ -30,7 +39,7 @@ struct Texture
     }
     Vector3 GetColor(Real u, Real v, Real level)
     {
-        return mipMap.Lookup(u, v, parsedImageTexture.uscale, parsedImageTexture.vscale, 
+        return mipMap.Lookup(u, v, parsedImageTexture.uscale, parsedImageTexture.vscale,
             parsedImageTexture.uoffset, parsedImageTexture.voffset, level);
     }
     Vector3 GetColor(Real u, Real v, int level)
@@ -42,7 +51,7 @@ struct Texture
     {
         Real scaled_footprint = footprint * max(width, height) *
             max(parsedImageTexture.uscale, parsedImageTexture.vscale);
-        Real level = log2(max(scaled_footprint, Real(1e-8f)));
+        Real level = log2(max(scaled_footprint, (Real)1e-9f));
         return level;
     }
 };

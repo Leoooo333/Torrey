@@ -2,10 +2,13 @@
 
 #include "torrey.h"
 #include "vector.h"
-
 #include <filesystem>
 #include <variant>
 #include <vector>
+
+#include "Distribution.h"
+#include "Texture.h"
+#include "matrix.h"
 
 struct ParsedCamera {
     Vector3 lookfrom;
@@ -15,11 +18,6 @@ struct ParsedCamera {
     int width, height;
 };
 
-struct ParsedImageTexture {
-    fs::path filename;
-    Real uscale = 1, vscale = 1;
-    Real uoffset = 0, voffset = 0;
-};
 
 using ParsedColor = std::variant<Vector3 /* RGB */, ParsedImageTexture>;
 
@@ -80,7 +78,39 @@ struct ParsedDiffuseAreaLight {
     Vector3 radiance;
 };
 
-using ParsedLight = std::variant<ParsedPointLight, ParsedDiffuseAreaLight>;
+struct ParsedEnvMap
+{
+    Texture texture;
+    Matrix4x4 light_to_world, world_to_light;
+    Distribution2D dist_2d;
+    Real intensity_scale = 1.;
+    ParsedEnvMap(ParsedImageTexture parsed_ImageTexture, Matrix4x4 light_to_world, Real intensity_scale)
+    {
+        texture = Texture(parsed_ImageTexture);
+        this->light_to_world = light_to_world;
+        world_to_light = inverse(light_to_world);
+        this->intensity_scale = intensity_scale;
+        std::vector<Real> luminances;
+        std::vector<Vector3>& env_image = texture.mipMap.pyramid[0]->data;
+        for (int v = 0; v < texture.height; v++)
+        {
+            for (int u = 0; u < texture.width; u++)
+            {
+                Real sinTheata = sin(c_PI * (Real)v / (Real)texture.height);
+                Vector3& pixel = env_image[v * texture.width + u];
+                Real luminance = pixel[0] * Real(0.212671) + pixel[1] * Real(0.715160) + pixel[2] * Real(0.072169);
+                luminances.push_back(luminance * sinTheata);
+            }
+        }
+        dist_2d = Distribution2D(luminances, texture.width, texture.height);
+    }
+    Vector2 GetUV(Vector3 direction)
+    {
+        return{ (atan2(-direction.z, direction.x) + c_PI) / (2. * c_PI),
+                acos(direction.y) / c_PI };
+    }
+};
+using ParsedLight = std::variant<ParsedPointLight, ParsedDiffuseAreaLight, ParsedEnvMap>;
 
 /// A Shape is a geometric entity that describes a surface. E.g., a sphere, a triangle mesh, a NURBS, etc.
 /// For each shape, we also store an integer "material ID" that points to a material, and an integer
