@@ -1,6 +1,6 @@
 # torrey
 UCSD CSE 168 renderer
-https://cseweb.ucsd.edu/~tzli/cse168/
+https://cseweb.ucsd.edu/~tzli/cse168/ 
 
 # Build
 All the dependencies are included. Use CMake to build.
