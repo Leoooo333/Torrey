@@ -20,43 +20,53 @@ struct ParsedCamera {
 
 
 using ParsedColor = std::variant<Vector3 /* RGB */, ParsedImageTexture>;
+using ParsedNormalMap = ParsedImageTexture;
+
 
 struct ParsedDiffuse {
     ParsedColor reflectance;
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedMirror {
     ParsedColor reflectance;
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedPlastic {
     Real eta; // index of refraction
     ParsedColor reflectance;
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedGlass {
     Real eta; // index of refraction
     ParsedColor reflectance;
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedVolume {
     Real thickness; // thickness of volume
     ParsedColor reflectance;
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedPhong {
     ParsedColor reflectance; // Ks
     Real exponent; // alpha
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedBlinnPhong {
     ParsedColor reflectance; // Ks
     Real exponent; // alpha
+    ParsedNormalMap normal_map;
 };
 
 struct ParsedBlinnPhongMicrofacet {
     ParsedColor reflectance; // Ks
     Real exponent; // alpha
+    ParsedNormalMap normal_map;
 };
 
 using ParsedMaterial = std::variant<ParsedDiffuse,

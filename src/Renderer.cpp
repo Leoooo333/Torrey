@@ -2658,33 +2658,44 @@ Vector3 Renderer::HitNearst_BVH_Path_One_Sample(Ray& ray, Scene& scene, bool isR
 
 	int material_id;
 	Vector3 normal_transformed;
-
+	Vector3 normal_shading;
 	if (NearstObj.index() == 0) // is sphere
 	{
 		ParsedSphere& sphere = std::get<ParsedSphere>(NearstObj);
+		material_id = sphere.material_id;
 		Vector4 normal_original = GetNormalByHitPoint(hit_point_original, sphere);
 		Vector4 normal_transformed_4 = Vector4(transpose(inverse(
 			translate(Vector3(sphere.position.x, sphere.position.y, sphere.position.z)))) * normal_original);
 		normal_transformed = normalize(Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z));
 
-		material_id = sphere.material_id;
+		Vector4 normal_shading_ori = GetNormalByHitPoint(hit_point_original, sphere, scene.materials[material_id], ray);
+		Vector4 normal_shading_4 = Vector4(transpose(inverse(
+			translate(Vector3(sphere.position.x, sphere.position.y, sphere.position.z)))) * normal_shading_ori);
+		normal_shading = normalize(Vector3(normal_shading_4.x, normal_shading_4.y, normal_shading_4.z));
 
 	}
 	else //is triangle
 	{
 		Triangle& triangle = std::get<Triangle>(NearstObj);
+		material_id = triangle.mesh->material_id;
 		if (triangle.mesh->normals.size() > 0 && m_Vars.shading_normal) // has cached normal
 		{
 			Vector4 normal_transformed_4 = GetNormalByHitPoint_Smooth(hit_point_original, triangle);
 			normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+
+			Vector4 normal_shading_4 = GetNormalByHitPoint_Smooth(hit_point_original, triangle, scene.materials[material_id], ray);
+			normal_shading = normalize(Vector3(normal_shading_4.x, normal_shading_4.y, normal_shading_4.z));
 		}
 		else
 		{
 			Vector4 normal_transformed_4 = GetNormalByHitPoint(hit_point_original, triangle);
 			normal_transformed = Vector3(normal_transformed_4.x, normal_transformed_4.y, normal_transformed_4.z);
+
+			Vector4 normal_shading_4 = GetNormalByHitPoint(hit_point_original, triangle, scene.materials[material_id], ray);
+			normal_shading = normalize(Vector3(normal_shading_4.x, normal_shading_4.y, normal_shading_4.z));
 		}
 
-		material_id = triangle.mesh->material_id;
+		
 	}
 
 	Material material = scene.materials[material_id];
@@ -2766,7 +2777,7 @@ Vector3 Renderer::HitNearst_BVH_Path_One_Sample(Ray& ray, Scene& scene, bool isR
 			//std::cout << "scatter:(" << scatter_direction.x << "," << scatter_direction.y << "," << scatter_direction.z << ")" << std::endl;
 			Real pdf = m_Sampler->GetPDF(material, ray, normal_transformed, m_Vars, scatter_direction, scene, m_BVH, rng, is_reflect, is_refract);
 			//std::cout << pdf << std::endl;
-			Vector3 brdf = m_Sampler->GetBRDF(material, ray, normal_transformed, m_Vars, scatter_direction, scene, m_BVH, rng, is_reflect, is_refract);
+			Vector3 brdf = m_Sampler->GetBRDF(material, ray, normal_shading, m_Vars, scatter_direction, scene, m_BVH, rng, is_reflect, is_refract);
 			ray.Direction = scatter_direction;
 
 			if (pdf > 0 && length(brdf) > 0)

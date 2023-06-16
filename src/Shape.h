@@ -31,6 +31,9 @@ Scene ParsedSceneToScene(ParsedScene& parsed_scene);
 Vector4 GetNormalByHitPoint(Vector3 hitpoint, ParsedSphere& sphere);
 Vector4 GetNormalByHitPoint(Vector3 hitpoint, Triangle& triangle);
 Vector4 GetNormalByHitPoint_Smooth(Vector3 hitpoint, Triangle& triangle);
+
+
+
 Real GetAreaByShape(ParsedSphere& sphere);
 Real GetAreaByShape(Triangle& triangle);
 
@@ -246,3 +249,6 @@ struct Ray
 };
 
 
+Vector4 GetNormalByHitPoint(Vector3 hitpoint, ParsedSphere& sphere, Material& material, Ray& ray);
+Vector4 GetNormalByHitPoint(Vector3 hitpoint, Triangle& triangle, Material& material, Ray& ray);
+Vector4 GetNormalByHitPoint_Smooth(Vector3 hitpoint, Triangle& triangle, Material& material, Ray& ray);

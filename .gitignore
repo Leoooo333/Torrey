@@ -72,3 +72,5 @@ hw2/hw_2_8.exr
 *.json
 final/*
 .vs/*
+PPT/*
+lecture/*

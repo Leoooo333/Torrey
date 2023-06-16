@@ -24,10 +24,18 @@ struct Texture
     Texture(ParsedImageTexture p_ImageTexture)
     {
         parsedImageTexture = p_ImageTexture;
-        mipMap = MipMap(imread3(parsedImageTexture.filename.string().c_str()));
+        std::string file_path = parsedImageTexture.filename.string().c_str();
+        if (file_path == "none")
+        {
+            Image3 normal_map(1, 1);
+            normal_map(0, 0) = Vector3(0., 0., 0.);
+            mipMap = MipMap(normal_map);
+        }
+        else
+            mipMap = MipMap(imread3(file_path));
 
         if (mipMap.pyramid[0]->height == 0 && mipMap.pyramid[0]->width == 0) {
-            std::cerr << "ERROR: Could not load texture image file '" << parsedImageTexture.filename.string().c_str() << "'.\n";
+            std::cerr << "ERROR: Could not load texture image file '" << file_path << "'.\n";
             width = height = 0;
         }
         width = mipMap.pyramid[0]->width;

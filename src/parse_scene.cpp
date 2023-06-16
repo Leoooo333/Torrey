@@ -509,6 +509,8 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
     const std::string& parent_id = "") {
     std::string type = node.attribute("type").value();
     std::string id = parent_id;
+
+    ParsedNormalMap normal_map = { fs::path("none") };
     if (!node.attribute("id").empty()) {
         id = node.attribute("id").value();
     }
@@ -522,14 +524,19 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
     }
     else if (type == "diffuse") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
+        
         for (auto child : node.children()) {
             std::string name = child.attribute("name").value();
             if (name == "reflectance") {
                 reflectance = parse_color(
                     child, texture_map, default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedDiffuse{ reflectance });
+        return std::make_tuple(id, ParsedDiffuse{ reflectance ,normal_map });
     }
     else if (type == "mirror") {
         ParsedColor reflectance(Vector3{ 1, 1, 1 });
@@ -539,8 +546,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
                 reflectance = parse_color(
                     child, texture_map, default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedMirror{ reflectance });
+        return std::make_tuple(id, ParsedMirror{ reflectance , normal_map });
     }
     else if (type == "plastic") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
@@ -554,8 +565,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
             else if (name == "ior" || name == "eta") {
                 eta = parse_float(child.attribute("value").value(), default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedPlastic{ eta, reflectance });
+        return std::make_tuple(id, ParsedPlastic{ eta, reflectance, normal_map });
     }
     else if (type == "glass") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
@@ -569,8 +584,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
             else if (name == "ior" || name == "eta") {
                 eta = parse_float(child.attribute("value").value(), default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedGlass{ eta, reflectance });
+        return std::make_tuple(id, ParsedGlass{ eta, reflectance, normal_map });
     }
     else if (type == "volume") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
@@ -584,8 +603,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
             else if (name == "thick") {
                 thick = parse_float(child.attribute("value").value(), default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedVolume{ thick, reflectance });
+        return std::make_tuple(id, ParsedVolume{ thick, reflectance , normal_map });
     }
     else if (type == "phong") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
@@ -599,8 +622,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
             else if (name == "exponent" || name == "alpha") {
                 exponent = parse_float(child.attribute("value").value(), default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedPhong{ reflectance, exponent });
+        return std::make_tuple(id, ParsedPhong{ reflectance, exponent , normal_map });
     }
     else if (type == "blinn" || type == "blinnphong") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
@@ -614,8 +641,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
             else if (name == "exponent" || name == "alpha") {
                 exponent = parse_float(child.attribute("value").value(), default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedBlinnPhong{ reflectance, exponent });
+        return std::make_tuple(id, ParsedBlinnPhong{ reflectance, exponent , normal_map });
     }
     else if (type == "blinn_microfacet" || type == "blinnphong_microfacet") {
         ParsedColor reflectance(Vector3{ 0.5, 0.5, 0.5 });
@@ -629,8 +660,12 @@ std::tuple<std::string /* ID */, ParsedMaterial> parse_bsdf(
             else if (name == "exponent" || name == "alpha") {
                 exponent = parse_float(child.attribute("value").value(), default_map);
             }
+            else if (name == "normal_map")
+            {
+                normal_map = std::get<ParsedImageTexture>(parse_texture(child, default_map));
+            }
         }
-        return std::make_tuple(id, ParsedBlinnPhongMicrofacet{ reflectance, exponent });
+        return std::make_tuple(id, ParsedBlinnPhongMicrofacet{ reflectance, exponent , normal_map });
     }
     else {
         Error(std::string("Unknown BSDF: ") + type);
