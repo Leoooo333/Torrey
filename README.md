@@ -1,7 +1,3 @@
-[TOC]
-
-
-
 # Torrey
 
 A CPU path tracer renderer, project from UCSD [CSE 168](https://cseweb.ucsd.edu/~tzli/cse168/ ).
