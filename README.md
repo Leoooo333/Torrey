@@ -6,7 +6,7 @@ Torrey is set up only based on a little of necessary library. We have implemente
 
 # Build & Run
 
-See `README.md` for details.
+See `README_ori.md` for details.
 
 # Gallery
 
