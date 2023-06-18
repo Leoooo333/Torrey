@@ -10,7 +10,7 @@
       "args": [
         "-hw",
         "fp_2",
-        "../../final/design/beer.xml",
+        "../../final/test_envmap/scene1_envmap_blinn.xml",
         "-max_depth 50"
       ]
     }

@@ -848,7 +848,7 @@ public:
 		}
 		Distribution1D lights_distribution(lights_pdf);
 		int random_light_index = lights_distribution.sample(rng);
-		//std::cout << random_light_index << std::endl;
+		//std::cout << random_light_index  << "," << lights_distribution.funcIntegral << std::endl;
 		ParsedLight light_random = scene.lights[random_light_index];
 		//ParsedLight light_max = scene.lights[max_index];
 		ParsedLight& light_target = light_random;

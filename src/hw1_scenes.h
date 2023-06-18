@@ -1682,22 +1682,23 @@ inline ParsedScene SceneToParsedScene(HW1_Scene& scene)
     {
         ParsedMaterial parsed_m;
         ParsedColor parsed_color;
+        ParsedNormalMap normal_map = { fs::path("none") };
         if(material.type == MaterialType::Diffuse)
         {
             parsed_color = { material.color };
-            ParsedDiffuse diffuse_m = { parsed_color };
+            ParsedDiffuse diffuse_m = { parsed_color ,normal_map };
             parsed_m = { diffuse_m };
         }
         else if(material.type == MaterialType::Mirror)
         {
             parsed_color = { material.color };
-            ParsedMirror mirror_m = { parsed_color };
+            ParsedMirror mirror_m = { parsed_color ,normal_map };
             parsed_m = { mirror_m };
         }
         else if(material.type == MaterialType::Glass)
         {
             parsed_color = { material.color };
-            ParsedGlass glass_m = { 1. / 1.5, parsed_color }; // air to glass
+            ParsedGlass glass_m = { 1. / 1.5, parsed_color,normal_map }; // air to glass
             parsed_m = { glass_m };
         }
         materials.push_back(parsed_m);

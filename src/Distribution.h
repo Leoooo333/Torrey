@@ -12,8 +12,8 @@ struct Distribution1D
     Distribution1D(std::vector<Real>& func)
     {
         pdf = func;
-        cdf.resize(func.size() + 1);
         cdf.push_back(0.);
+        cdf.resize(func.size() + 1);
         for (int i = 0; i < (int)func.size(); i++)
         {
             cdf[i + 1] = cdf[i] + pdf[i];
@@ -28,8 +28,8 @@ struct Distribution1D
     int sample(pcg32_state& rng)
     {
         Real random_p = next_pcg32_real<Real>(rng);
-        int index = 0;
-        index = (int)(std::lower_bound(cdf.begin(), cdf.end(), random_p) - cdf.begin())-1;
+        int index = std::lower_bound(cdf.begin(), cdf.end(), random_p) - cdf.begin() - 1;
+        
         return index;
     }
     Real GetPDF(int index)

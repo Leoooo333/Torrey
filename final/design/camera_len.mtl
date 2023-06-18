@@ -1,0 +1,26 @@
+# Blender 3.3.0 MTL File: 'uploads_files_612295_lemon.blend'
+# www.blender.org
+
+newmtl Camera_01_lens_body.001
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_lens_body_diff_1k.png
+map_Ns C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_lens_body_roughness_1k.png
+map_refl C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_lens_body_metallic_1k.png
+map_Bump -bm 1.000000 C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_lens_body_nor_gl_1k.png
+
+newmtl Camera_01_strap.001
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_strap_diff_1k.png
+map_Ns C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_strap_roughness_1k.png
+map_refl C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_strap_metallic_1k.png
+map_Bump -bm 1.000000 C:/Users/Leo/AppData/Local/Temp/Temp1_Camera_01_1k.blend.zip/textures/Camera_01_strap_nor_gl_1k.png

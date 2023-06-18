@@ -1,3 +1,4 @@
+#include "hw1_scenes.h"
 #include "hw4.h"
 #include "parse_scene.h"
 #include "Renderer.cpp"
@@ -88,8 +89,7 @@ Image3 final_proj_2(const std::vector<std::string>& params) {
     ParsedScene scene = parse_scene(params[0]);
     std::cout << "Scene parsing done. Took " << tick(timer) << " seconds." << std::endl;
     UNUSED(scene);
-
-    UNUSED(spp);
+	UNUSED(spp);
     std::shared_ptr<Image3> img;
     Variables vars;
 
@@ -104,10 +104,10 @@ Image3 final_proj_2(const std::vector<std::string>& params) {
     vars.cameraParameters.upvec = scene.camera.up;
     vars.cameraParameters.fovy = scene.camera.vfov;
     vars.cameraParameters.samples_per_pixel = scene.samples_per_pixel;
-    vars.cameraParameters.samples_per_pixel = 64;
+    vars.cameraParameters.samples_per_pixel =16;
 
     //larger the file, larger the parallel_counts for bvh
-    vars.parallel_counts_bvh = 16;
+    vars.parallel_counts_bvh = 2;
     // enable shading_normal
     vars.shading_normal = true;
     // enable multiple sampling on area lights, must be square
