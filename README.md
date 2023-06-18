@@ -2,7 +2,7 @@
 
 A CPU path tracer renderer, project from UCSD [CSE 168](https://cseweb.ucsd.edu/~tzli/cse168/ ).
 
-Torrey is set up only based on a little of necessary library. We have implemented lots of rendering algorithms and materials in it. For our technical details, check our [report](../../assets/pdf/report.pdf).
+Torrey is set up only based on a little of necessary library. We have implemented lots of rendering algorithms and materials in it. For our technical details, check our [report](https://leoooo333.github.io/assets/pdf/report.pdf).
 
 # Build & Run
 
